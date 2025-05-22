@@ -12,19 +12,17 @@ type Routes struct {
 }
 
 func RegisterRoutes(router *gin.Engine, taskController *controllers.TaskController, taskDAO *dao.TaskDAO, taskPermissionDAO *dao.TaskPermissionDAO) {
-	// group the routes
 	taskRoutes := router.Group("/api/tasks")
-	taskRoutes.Use(middleware.JWTAuthMiddleware()) // general middleware for authentication
+	taskRoutes.Use(middleware.JWTAuthMiddleware())
 	{
 		taskRoutes.POST("/", taskController.CreateTask)
-		// taskRoutes.GET("/", taskController.verify-email)
 		taskRoutes.GET("/", taskController.GetTasks)
-		// taskRoutes.GET("/:id", taskController.GetTask) // routes and http requests
-		// taskRoutes.PUT("/:id", taskController.UpdateTask)
-		taskRoutes.GET("/:id", middleware.TaskAccessMiddleware(taskDAO, taskPermissionDAO, "read"), taskController.GetTask) // middleware for authorization and permission
-		taskRoutes.PUT("/:id", middleware.TaskAccessMiddleware(taskDAO, taskPermissionDAO, "update"), taskController.UpdateTask) // middleware for authorization and permission
-		taskRoutes.DELETE("/:id", taskController.DeleteTask)
-		taskRoutes.POST("/:id/delegate", middleware.TaskOwnerMiddleware(taskDAO), taskController.DelegateTask) // middleware for authorization
+
+		taskRoutes.GET("/:id", middleware.TaskAccessMiddleware(taskDAO, taskPermissionDAO, "R"), taskController.GetTask)
+		taskRoutes.PUT("/:id", middleware.TaskAccessMiddleware(taskDAO, taskPermissionDAO, "U"), taskController.UpdateTask)
+
+		taskRoutes.POST("/:id/delegate", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.DelegateTask)
+		taskRoutes.DELETE("/:id", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.DeleteTask)
 	}
 }
 // Compare this snippet from services/task.go:
