@@ -3,7 +3,7 @@ package dao
 import (
 	"taskapi/models"
 
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -54,7 +54,7 @@ func (dao *TaskDAO) GetTaskDB(id string) (*models.Task, error) {
 }
 
 // here the GORM accepts map as struct for updating, empty interface is flexible for updating, struct is not.
-func (dao *TaskDAO) UpdateTaskDB(taskID uuid.UUID, task map[string]interface{}) error {
+func (dao *TaskDAO) UpdateTaskDB(taskID string, task map[string]interface{}) error {
 	// placeholder for the task to be updated
 	var updateTask models.Task
 	// finds the task by id and store in the memory location of updateTask
