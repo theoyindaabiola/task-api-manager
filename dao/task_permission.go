@@ -15,7 +15,7 @@ func NewTaskPermissionDAO(db *gorm.DB) *TaskPermissionDAO {
 	return &TaskPermissionDAO{DB: db}
 }
 
-func (dao *TaskPermissionDAO) CreatePermission(taskPermission *models.TaskPermission) error {
+func (dao *TaskPermissionDAO) CreatePermission(taskPermission *models.TaskDelegation) error {
 	// gorm needs the instance of Task{} not the task struct
 	if err := dao.DB.Create(&taskPermission).Error; err != nil {
 		return err
@@ -23,12 +23,26 @@ func (dao *TaskPermissionDAO) CreatePermission(taskPermission *models.TaskPermis
 	return nil
 }
 
-func (dao *TaskPermissionDAO) FindPermission(taskID string, userID string) (*models.TaskPermission, error) {
-	var taskPermission models.TaskPermission
-	if err := dao.DB.Where("task_id = ? AND user_id = ?", taskID, userID).First(&taskPermission).Error; err != nil {
+func (dao *TaskPermissionDAO) FindPermission(taskID string, userID string) (*models.TaskDelegation, error) {
+	var taskPermission models.TaskDelegation
+	if err := dao.DB.Where("task_id = ? AND delegatee_id = ?", taskID, userID).First(&taskPermission).Error; err != nil {
         return nil, err
     }
 
 	return &taskPermission, nil
 }
+
+func HasPermission(required string, actual rune) bool {
+    switch required {
+    case "R":
+        return actual == 'R' || actual == 'U' || actual == 'O'
+    case "U":
+        return actual == 'U' || actual == 'O'
+    case "O":
+        return actual == 'O'
+    default:
+        return false
+    }
+}
+
 
