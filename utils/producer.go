@@ -24,7 +24,7 @@ func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmai
 		Email:          email,
         Code:           code,
         Type:           messageType,
-        TaskID:         code, // For delegation, code is TaskID
+        TaskID:         code,
         DelegateeID:    delegateeID,
         DelegateeEmail: delegateeEmail,
         TaskTitle:      taskTitle,

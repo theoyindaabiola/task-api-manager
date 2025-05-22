@@ -2,9 +2,9 @@ package utils
 
 import (
 	"crypto/rand"
-	"crypto/tls"
+	// "crypto/tls"
 	"encoding/hex"
-	"fmt"
+	// "fmt"
 	"log"
 	"os"
 
@@ -26,34 +26,34 @@ func SendMail(email string, body, messageType string) error {
 	mail.SetHeader("To", email)
 	mail.SetHeader("Subject", subject)
 	mail.SetBody("text/plain", body)
-	port := 587
+	// port := 587
 
-	// dialer := gomail.NewDialer(
-	// 	os.Getenv("SMTP_HOST"), 
-	// 	// 587,
-	// 	465, 
-	// 	os.Getenv("SMTP_USERNAME"), 
-	// 	os.Getenv("SMTP_PASSWORD"),
-	// )
+	dialer := gomail.NewDialer(
+		os.Getenv("SMTP_HOST"), 
+		587,
+		// 465, 
+		os.Getenv("SMTP_USERNAME"), 
+		os.Getenv("SMTP_PASSWORD"),
+	)
 
 	// for testing
-	if os.Getenv("SMTP_PORT") == "465" {
-        port = 465
-    }
-    dialer := gomail.NewDialer(
-        os.Getenv("SMTP_HOST"),
-        port,
-        os.Getenv("SMTP_USERNAME"),
-        os.Getenv("SMTP_PASSWORD"),
-    )
-    if port == 465 {
-        dialer.TLSConfig = &tls.Config{
-            InsecureSkipVerify: true, // For testing only
-            ServerName:        os.Getenv("SMTP_HOST"),
-        }
-    }
+	// if os.Getenv("SMTP_PORT") == "465" {
+    //     port = 465
+    // }
+    // dialer := gomail.NewDialer(
+    //     os.Getenv("SMTP_HOST"),
+    //     port,
+    //     os.Getenv("SMTP_USERNAME"),
+    //     os.Getenv("SMTP_PASSWORD"),
+    // )
+    // if port == 465 {
+    //     dialer.TLSConfig = &tls.Config{
+    //         InsecureSkipVerify: true, // For testing only
+    //         ServerName:        os.Getenv("SMTP_HOST"),
+    //     }
+    // }
 
-	fmt.Printf("SMTP: %s:587, User: %s, Sender: %s, To: %s\n", os.Getenv("SMTP_HOST"), os.Getenv("SMTP_USERNAME"), os.Getenv("EMAIL_SENDER"), email)
+	// fmt.Printf("SMTP: %s, User: %s, Sender: %s, To: %s\n", os.Getenv("SMTP_PORT"), os.Getenv("SMTP_HOST"), os.Getenv("SMTP_USERNAME"), os.Getenv("EMAIL_SENDER"), email)
 
 	if err := dialer.DialAndSend(mail); err != nil {
 		log.Printf("Failed to send %s email to %s: %v ", messageType, email, err)
