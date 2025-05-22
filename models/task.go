@@ -15,7 +15,7 @@ type Task struct {
 	Title 		string 		`gorm:"not null" json:"title"`
 	Description	string 		`gorm:"not null" json:"description"`
 	Completed 	bool 		`gorm:"default:false" json:"completed"`
-	CreatedBy	string 		`gorm:"primaryKey" json:"created_by"`
+	CreatedBy	string 		`json:"created_by"`
 	CreatedAt 	time.Time 	`json:"created_at"`
 	UpdatedAt 	time.Time 	`json:"updated_at"`
 }
