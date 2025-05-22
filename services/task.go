@@ -2,12 +2,13 @@ package services
 
 import (
 	// "fmt"
+	"errors"
 	"os"
 	"taskapi/dao"    // needs to interact with it
 	"taskapi/models" // needs the model for the db
 	"taskapi/utils"
 
-	"github.com/google/uuid"
+	// "github.com/google/uuid"
 )
 
 /**
@@ -44,22 +45,45 @@ func (s *TaskService) GetTasks() ([]models.Task, error) {
 }
 
 // id string coming from the API request
-func (s *TaskService) GetTask(id string) (*models.Task, error) { 
+func (s *TaskService) GetTask(taskID, userID string) (*models.Task, error) { 
+	if err := s.AskPermission(taskID, userID); err != nil {
+		return nil, err
+	}
 	// GetTaskDB is a function of class TaskDAO from the dao
-	return s.TaskDAO.GetTaskDB(id)
+	return s.TaskDAO.GetTaskDB(taskID)
 }
 
-func (s *TaskService) UpdateTask(taskID uuid.UUID, task map[string]interface{}) error { 
-	// UpdateTaskDB is a function of class TaskDAO from the dao
+func (s *TaskService) UpdateTask(taskID, userID string, task map[string]interface{}) error { 
+	if err := s.AskPermission(taskID, userID); err != nil {
+		return err
+	}
+	// UpdateTaskDB is a function of class TaskDAO from the dao if permission passed
 	return s.TaskDAO.UpdateTaskDB(taskID, task)
 }
 
-// func (s *TaskService) UpdateTask(taskID string, task map[string]interface{}) error { 
-// 	// UpdateTaskDB is a function of class TaskDAO from the dao
-// 	return s.TaskDAO.UpdateTaskDB(taskID, task)
-// }
+func (s *TaskService) AskPermission(taskID string, userID string) error { 
+	// check for task
+	task, err := s.TaskDAO.GetTaskDB(taskID)
+    if err != nil {
+        return  err
+    }
 
-func (s *TaskService) DelegateTask(permission *models.TaskPermission) error {
+	if task.CreatedBy == userID {
+		return nil // don't return any error
+	}
+
+	permission, err := s.TaskPermissionDAO.FindPermission(taskID, userID)
+	if err != nil {
+		return errors.New("no permission found for this task")
+	}
+
+	if permission.Permission != 'R' && permission.Permission != 'U' {
+		return errors.New("insufficient permission")
+	}
+	return nil
+}
+
+func (s *TaskService) DelegateTask(permission *models.TaskDelegation) error {
 	if err := s.TaskPermissionDAO.CreatePermission(permission); err != nil {
         return err
     }
@@ -70,7 +94,7 @@ func (s *TaskService) DelegateTask(permission *models.TaskPermission) error {
         return  err
     }
 
-	user, err := s.UserDAO.GetUserByIdDB(permission.UserID)
+	user, err := s.UserDAO.GetUserByIdDB(permission.DelegateeID)
     if err != nil {
         return err
     }
@@ -80,7 +104,7 @@ func (s *TaskService) DelegateTask(permission *models.TaskPermission) error {
         user.Email,
         permission.TaskID,
         "delegation",
-        permission.UserID,
+        permission.DelegateeID,
         user.Email,
         task.Title,
     ); err != nil {
@@ -89,8 +113,11 @@ func (s *TaskService) DelegateTask(permission *models.TaskPermission) error {
     return nil
 }
 
-func (s *TaskService) DeleteTask(id string) error { 
+func (s *TaskService) DeleteTask(taskID, userID string) error {
+	if err := s.AskPermission(taskID, userID); err != nil {
+		return err
+	}
 	// DeleteTaskDB is a function of class TaskDAO from the dao
-	return s.TaskDAO.DeleteTaskDB(id)
+	return s.TaskDAO.DeleteTaskDB(taskID)
 }
 
