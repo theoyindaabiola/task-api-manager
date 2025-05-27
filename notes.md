@@ -75,7 +75,7 @@ URL: POST http://localhost:8080/api/tasks/5203a290-1c9f-4ecc-b1c4-3fb3d2a8a359/d
 
 # URLS
 POST: localhost:8080/api/users/register
-GET: localhost:8080/api/users/verify-email?code=87d010e4101f9354a82561e0f797794f
+GET: localhost:8080/api/users/verify-email?code=3f79bb0d83a19f16b052c2b7a537f1fa
 POST: localhost:8080/api/users/login
 POST: localhost:8080/api/tasks/
 POST: localhost:8080/api/users/forgot-password
