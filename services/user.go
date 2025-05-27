@@ -35,7 +35,7 @@ func (s *UserService) RegisterUser(user *models.User) error {
 	// the hash string returned is the same as the user.Password
 	user.Password = string(hash)
 	verificationCode := utils.GenerateVerificationCode()
-	user.VerificationToken = verificationCode
+	user.VerificationToken = &verificationCode
 	user.ResetToken = nil
 	if err := s.UserDAO.CreateUserDB(user); err != nil {
 		return err
@@ -64,7 +64,7 @@ func (s *UserService) VerificationService(verificationToken string) error {
 
 	user.Verified = true
 	// clear after use
-	user.VerificationToken = ""
+	user.VerificationToken = nil
 	if err := s.UserDAO.DB.Save(user).Error; err != nil {
 		return err
 	}
