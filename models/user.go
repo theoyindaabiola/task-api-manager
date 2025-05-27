@@ -14,7 +14,7 @@ type User struct {
 	Password			string 			`gorm:"not null" json:"-"`
 	Email				string 			`gorm:"unique;not null" json:"email"`
 	Verified			bool   			`gorm:"default:false" json:"verified"`
-	VerificationToken 	string 			`gorm:"unique" json:"-"`
+	VerificationToken 	*string 		`gorm:"unique" json:"-"`
 	ResetToken			*string			`gorm:"unique" json:"-"`
 	ResetTokenExpiresAt *time.Time      `gorm:"default:null" json:"-"`
 	CreatedAt			time.Time 		`json:"created_at"`
