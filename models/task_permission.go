@@ -12,7 +12,7 @@ type TaskDelegation struct {
 	TaskID			string 		`gorm:"primaryKey" json:"task_id"`
 	DelegateeID		string 		`gorm:"primaryKey" json:"delegatee_id"`
     Permission		rune		`gorm:"not null" json:"permission"`
-	Task			Task		`gorm:"foreignKey:TaskID" json:"task"`
+	Task			Task		`gorm:"foreignKey:TaskID;constraint:OnDelete:CASCADE" json:"task"`
 	Delegatee		User  		`gorm:"foreignKey:DelegateeID;" json:"delegatee"`
 	CreatedAt		time.Time 	`json:"created_at"`
 	UpdatedAt		time.Time 	`json:"updated_at"`
