@@ -169,7 +169,7 @@ func (tc *TaskController) DelegateTask(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	userIDStr, ok := userID.(string) // asserts the userID is a string
+	userIDStr, ok := userID.(string) // // asserts the userID is a string
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
         return
@@ -207,76 +207,6 @@ func (tc *TaskController) DelegateTask(c *gin.Context) {
         return
     }
     c.JSON(http.StatusOK, gin.H{"message": "Task delegated successfully"})
-}
-
-func (tc *TaskController) UpdatePermission(c *gin.Context) {
-	taskID := c.Param("id")
-
-	var input dto.TaskDelegationInput
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: " + err.Error()})
-		return
-	}
-
-	if len(input.Permission) != 1 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Permission must be a single character like 'R' or 'U'"})
-		return
-	}
-	permRune := rune(input.Permission[0])
-
-	// get user ID of the owner (JWT context)
-	userID, _ := c.Get("user_id")
-	ownerID, ok := userID.(string)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
-		return
-	}
-
-	// only task owner can update permissions
-	task, err := tc.TaskService.GetTask(taskID, ownerID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
-		return
-	}
-	if task.CreatedBy != ownerID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the task owner can update permissions"})
-		return
-	}
-
-	// call the service method to update
-	if err := tc.TaskService.UpdateTaskPermission(taskID, input.DelegateeID, permRune); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Permission updated successfully"})
-}
-
-func (tc *TaskController) RevokePermission(c *gin.Context) {
-	taskID := c.Param("id")
-	userID, _ := c.Get("user_id")
-	ownerID, ok := userID.(string)
-	if !ok {
-        c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
-        return
-    }
-
-	var body struct {
-		DelegateeID string `json:"delegatee_id"`
-	}
-
-	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
-		return
-	}
-
-	err := tc.TaskService.RevokePermission(taskID, ownerID, body.DelegateeID)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Permission revoked successfully"})
 }
 
 func (tc *TaskController) DeleteTask(c *gin.Context) {
