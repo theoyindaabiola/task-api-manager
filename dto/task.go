@@ -9,6 +9,6 @@ type Task struct {
 
 type TaskDelegationInput struct {
 	DelegateeID     string `json:"delegatee_id" binding:"required"`
-	Permission string `json:"permission" binding:"required"` // expects "R", or "U" in this context
+	Permission 		string `json:"permission" binding:"required"` // expects "R", or "U" , "O" in this context
 }
 

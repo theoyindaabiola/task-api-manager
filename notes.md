@@ -13,12 +13,17 @@ Project is to be completed within a month. Also submission should be made via gi
     "email": "johnnydaluv@yahoo.com",
     "password": "JohD@n" || 
 }
-
+verify
+login
+Napoleon Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTMzMjMzMzgsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiMDE3ZDZjOGEtNDBjYy00NTNiLWEwNDItN2ZmYjE3ZGUxNjY5In0.z47aDbDU0MzMTat0bPAKd9AUhOL7ppklWdc7Ze1Js18"
 
 {
-    "title": "John Tasks",
-    "description": "John's first to-do"
-}  
+  "title": "First Task",
+  "description": "This is John's first delegated task.",
+  "completed": false
+}
+
+TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 
 # FORGOT-PASSWORD
 {
@@ -27,8 +32,8 @@ Project is to be completed within a month. Also submission should be made via gi
 
 # RESET-PASSWORD
 {
-    "token": "99c4eff7-3220-489b-a0f1-2411870cdba5",
-    "password": "JohDanToTheWorld"
+    "token": "30d4f2784b104bd22ed3250e601e4bb6", // reset password token
+    "password": "JohD@n123"
 }
 
 # TASKOWNER
@@ -38,18 +43,14 @@ Project is to be completed within a month. Also submission should be made via gi
     "password": "OyindaToTheWorld"
 }
 verify
-login
+login 
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTMzMTAyNzksImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiNDRmMjNhNTUtMjIxOC00YjVlLTlkODAtMjYzYzhkZTc5N2MwIn0.WmeHaCzIhnSfxOzhMoWZ9kbzzyidgpuG6QEyr9nWYe4"
 
 # CREATE-TASK
 update the token in the Headers
-    "delegator": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDgwMDYzOTgsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiNDU4ZmIwMTMtMzUzYi00OTFmLTk5YjktNzZiNWVhYjMzYzg2In0.V1OQVKiC2Rrbi_PBtW2iHBzqcumXAPYqlkbds4z4eZ8"
+    "delegator": ""
 # TASK
-{
-    "title": "Oyindamola Tasks",
-    "description": "Oyin's first middleware",
-    "completed": "false"
-}
-TaskID: 5203a290-1c9f-4ecc-b1c4-3fb3d2a8a359
+TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 
 
 
@@ -60,27 +61,35 @@ TaskID: 5203a290-1c9f-4ecc-b1c4-3fb3d2a8a359
     "password": "DasolaToTheWorld" || "dasolawelldone"
 }
 
-"delegatee": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NDgwMDY4MTUsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiNmViNTIyYjktZjEwYi00MDE1LWIzMTItNjA0N2M1YmJmODBmIn0.iMVaho1eai6r2Kje2bz8D9G0P8gVoUb_GYXsu9a_dm4"
+"delegatee": ""
 
 
-
-# DELEGATE TASK (using the delegator's token in the header)
-URL: POST http://localhost:8080/api/tasks/5203a290-1c9f-4ecc-b1c4-3fb3d2a8a359/delegate
-
+# DELEGATE 
 {
-  "delegatee_id": "6eb522b9-f10b-4015-b312-6047c5bbf80f",
+  "delegatee_id": "44f23a55-2218-4b5e-9d80-263c8de797c0",
   "permission": "R"  // or "U"
 }
 
-
-# URLS
+### URLS
+# USER
 POST: localhost:8080/api/users/register
-GET: localhost:8080/api/users/verify-email?code=3f79bb0d83a19f16b052c2b7a537f1fa
+GET: localhost:8080/api/users/verify-email?code=dea01a277d5e485f4aa3699e20b7a1c6
 POST: localhost:8080/api/users/login
-POST: localhost:8080/api/tasks/
+
+# PASSWORD
 POST: localhost:8080/api/users/forgot-password
 POST: localhost:8080/api/users/reset-password
-GET: http://localhost:8080/api/tasks/:id // to access task
+
+# TASK & DELEGATION
+POST: localhost:8080/api/tasks/     // create task
+GET: localhost:8080/api/tasks/<task-id>     // to access task
+DELETE: localhost:8080/api/tasks/<task-id>/delete      // delete task by owner
+PUT: localhost:8080/api/tasks/<task-id>       // update task
+
+# DELEGATE TASK (using the delegator's token in the header)
+POST: localhost:8080/api/tasks/d3b7fbff-b87e-40bf-b0e8-5586f298de70/delegate       // delegate task by owner
+PATCH: localhost:8080/api/tasks/<task-id>/permission    // update the permission by owner
+DELETE localhost:8080/api/tasks/<task-id>/permission    // revoke permission by owner
 
 
 DB_USER=

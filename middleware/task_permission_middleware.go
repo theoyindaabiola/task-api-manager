@@ -45,7 +45,11 @@ func TaskOwnerMiddleware(taskDAO *dao.TaskDAO, permDAO *dao.TaskPermissionDAO, p
 				return
 			} 
 		} else {
-			c.JSON(403, gin.H{"error": "Only task owner can delegate"})
+			if c.Request.Method == "DELETE" {
+				c.JSON(403, gin.H{"error": "Only task owner can delete task"})
+			} else {
+				c.JSON(403, gin.H{"error": "Only task owner can delegate"})
+			}
 			c.Abort() // non-owner is unauthorize
 			return
 		}
@@ -97,7 +101,14 @@ func TaskAccessMiddleware(taskDAO *dao.TaskDAO, permDAO *dao.TaskPermissionDAO, 
 			c.Abort()
 			return
 		}
-		if perm == nil || !dao.HasPermission(permission, perm.Permission) {
+
+		if perm == nil {
+			c.JSON(403, gin.H{"error": "No task delegation or permission found"})
+			c.Abort()
+			return
+		}
+
+		if !dao.HasPermission(permission, perm.Permission) {
 			c.JSON(403, gin.H{"error": "Insufficient permissions"})
 			c.Abort()
 			return
