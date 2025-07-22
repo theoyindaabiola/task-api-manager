@@ -283,7 +283,7 @@ func (tc *TaskController) DeleteTask(c *gin.Context) {
 	taskID := c.Param("id")
 
 	userID, _ := c.Get("user_id")
-	userIDStr, ok := userID.(string) // // asserts the userID is a string
+	userIDStr, ok := userID.(string) // asserts the userID is a string
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
         return
