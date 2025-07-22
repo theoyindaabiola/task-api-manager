@@ -113,6 +113,30 @@ func (s *TaskService) DelegateTask(permission *models.TaskDelegation) error {
     return nil
 }
 
+func (s *TaskService) UpdateTaskPermission(taskID, userID string, newPermission rune) error {
+	return s.TaskPermissionDAO.UpdatePermission(taskID, userID, newPermission)
+}
+
+func (s *TaskService) RevokePermission(taskID, ownerID, delegateeID string) error {
+	// confirm the request is from the task owner
+	task, err := s.TaskDAO.GetTaskDB(taskID)
+	if err != nil {
+		return err
+	}
+	if task.CreatedBy != ownerID {
+		return errors.New("only the task owner can revoke permissions")
+	}
+
+	// remove the permission
+	err = s.TaskPermissionDAO.DeletePermission(taskID, delegateeID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+
 func (s *TaskService) DeleteTask(taskID, userID string) error {
 	if err := s.AskPermission(taskID, userID); err != nil {
 		return err
@@ -120,4 +144,3 @@ func (s *TaskService) DeleteTask(taskID, userID string) error {
 	// DeleteTaskDB is a function of class TaskDAO from the dao
 	return s.TaskDAO.DeleteTaskDB(taskID)
 }
-
