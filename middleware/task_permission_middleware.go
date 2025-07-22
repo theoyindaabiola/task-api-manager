@@ -39,15 +39,18 @@ func TaskOwnerMiddleware(taskDAO *dao.TaskDAO, permDAO *dao.TaskPermissionDAO, p
 
 		// check user task is created by who is trying to access it
 		if task.CreatedBy == userID {
-			// Task owner, assign 'O' permission dynamically
+			// task owner, assign 'O' permission
 			if dao.HasPermission(permission, 'O') {
 				c.Next() // owner is passed
 				return
 			} 
 		} else {
-			if c.Request.Method == "DELETE" {
+			switch c.Request.Method {
+			case "DELETE":
 				c.JSON(403, gin.H{"error": "Only task owner can delete task"})
-			} else {
+			case "PATCH":
+				c.JSON(403, gin.H{"error": "Only task owner can update permissions"})
+			default:
 				c.JSON(403, gin.H{"error": "Only task owner can delegate"})
 			}
 			c.Abort() // non-owner is unauthorize
