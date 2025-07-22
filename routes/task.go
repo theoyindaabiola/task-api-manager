@@ -22,7 +22,11 @@ func RegisterRoutes(router *gin.Engine, taskController *controllers.TaskControll
 		taskRoutes.PUT("/:id", middleware.TaskAccessMiddleware(taskDAO, taskPermissionDAO, "U"), taskController.UpdateTask)
 
 		taskRoutes.POST("/:id/delegate", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.DelegateTask)
-		taskRoutes.DELETE("/:id", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.DeleteTask)
+		taskRoutes.DELETE("/:id/delete", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.DeleteTask)
+
+		taskRoutes.PATCH("/:id/permission", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.UpdatePermission)
+		taskRoutes.DELETE("/:id/permission", middleware.TaskOwnerMiddleware(taskDAO, taskPermissionDAO, "O"), taskController.RevokePermission)
+
 	}
 }
 // Compare this snippet from services/task.go:
