@@ -233,13 +233,9 @@ func (tc *TaskController) UpdatePermission(c *gin.Context) {
 	}
 
 	// only task owner can update permissions
-	task, err := tc.TaskService.GetTask(taskID, ownerID)
+	_, err := tc.TaskService.GetTask(taskID, ownerID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
-		return
-	}
-	if task.CreatedBy != ownerID {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only the task owner can update permissions"})
 		return
 	}
 
