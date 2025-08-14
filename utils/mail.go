@@ -2,6 +2,7 @@ package utils
 
 import (
 	"crypto/rand"
+	"strconv"
 	// "crypto/tls"
 	"encoding/hex"
 	// "fmt"
@@ -26,12 +27,15 @@ func SendMail(email string, body, messageType string) error {
 	mail.SetHeader("To", email)
 	mail.SetHeader("Subject", subject)
 	mail.SetBody("text/plain", body)
-	// port := 587
+	port, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		log.Println("Invalid SMTP_PORT:", err)
+		port = 2525 // fallback
+	}
 
 	dialer := gomail.NewDialer(
 		os.Getenv("SMTP_HOST"), 
-		587,
-		// 465, 
+		port,
 		os.Getenv("SMTP_USERNAME"), 
 		os.Getenv("SMTP_PASSWORD"),
 	)
