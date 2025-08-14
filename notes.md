@@ -15,7 +15,7 @@ Project is to be completed within a month. Also submission should be made via gi
 }
 verify
 login
-Napoleon Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTMzMjMzMzgsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiMDE3ZDZjOGEtNDBjYy00NTNiLWEwNDItN2ZmYjE3ZGUxNjY5In0.z47aDbDU0MzMTat0bPAKd9AUhOL7ppklWdc7Ze1Js18"
+Napoleon Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTQzMTMxNDQsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiYWZkMTliNGEtZWViOS00YzVmLWI2MDMtMGMzYzg5ZGE5NzYyIn0.p8lyvdOVC4LYSr9oNmFk9uRCisb41NXZoTThGkbL3ts"
 
 {
   "title": "First Task",
@@ -32,7 +32,7 @@ TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 
 # RESET-PASSWORD
 {
-    "token": "30d4f2784b104bd22ed3250e601e4bb6", // reset password token
+    "token": "bbe79748bf19edb790db69264bdd2ba1", // reset password token
     "password": "JohD@n123"
 }
 
@@ -44,7 +44,7 @@ TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 }
 verify
 login 
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTMzMTAyNzksImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiNDRmMjNhNTUtMjIxOC00YjVlLTlkODAtMjYzYzhkZTc5N2MwIn0.WmeHaCzIhnSfxOzhMoWZ9kbzzyidgpuG6QEyr9nWYe4"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTQzMTI5MzQsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiYWZmYTcwNGItNTZlZi00ZjQ0LWFiZDMtNWQ5MTI0YjBlMjJiIn0.sHPWzBF1gGE-KwCCV_ISS8wHZnAzJByJ74AIiHn2ZhA"
 
 # CREATE-TASK
 update the token in the Headers
@@ -66,7 +66,7 @@ TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 
 # DELEGATE 
 {
-  "delegatee_id": "44f23a55-2218-4b5e-9d80-263c8de797c0",
+  "delegatee_id": "afd19b4a-eeb9-4c5f-b603-0c3c89da9762",
   "permission": "R"  // or "U"
 }
 
