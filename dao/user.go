@@ -88,5 +88,3 @@ func (dao *UserDAO) GetUserResetToken(ResetToken string) (*models.User, error) {
 func (dao *UserDAO) Update(user *models.User) error {
     return dao.DB.Save(user).Error
 }
-
-

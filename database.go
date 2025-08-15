@@ -41,4 +41,3 @@ func ConnectDB() *gorm.DB {
 
 	return db
 }
-
