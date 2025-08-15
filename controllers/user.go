@@ -11,7 +11,7 @@ import (
 )
 
 /**
-	we need the service instance to be able to send the payload to it and the functions
+	service instance needed to send the payload to it and the functions
 	has to be connected to this instance
 **/
 
@@ -24,9 +24,9 @@ func NewUserController(service *services.UserService) *UserController {
 }
 
 // context gets into the body of your package. c is an instance of pointing to the gin.Context
-func (tc *UserController) CreateUser(c *gin.Context) { 
+func (tc *UserController) CreateUser(c *gin.Context) {
 	// dto instance for validation
-	var payload dto.RegisterUserDTO // placeholder to hold the user/payload to be proccessed
+	var payload dto.RegisterUserDTO // user payload placeholder
 	
 	// read the request JSON data and convert it to user of struct User
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -39,7 +39,7 @@ func (tc *UserController) CreateUser(c *gin.Context) {
 	// this is coming from the user payload
 	user := models.User {
 		Username: payload.Username,
-		Email: payload.Email, // commented out fpr error testing
+		Email: payload.Email,
 		Password: payload.Password,
 	}
 
@@ -67,7 +67,7 @@ func (tc *UserController) VerifyEmail(c *gin.Context) {
 // context gets into the body of your package. c is an instance of pointing to the gin.Context
 func (tc *UserController) LoginUser(c *gin.Context) { 
 	// dto instance for validation
-	var payload dto.LoginUserDTO // placeholder to hold the user/payload to be proccessed
+	var payload dto.LoginUserDTO // user payload placeholder
 
 	// read the request JSON data and convert it to user of struct User
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -83,7 +83,7 @@ func (tc *UserController) LoginUser(c *gin.Context) {
 	}
 
 	// creates the database and return error in JSON format
-	// tc.UserService connects to the services and call the CreateUser()
+	// tc.UserService connects to the services and call the LoginUser()
 	token, err := tc.UserService.LoginUser(&user)
 	
 	if err != nil {
@@ -121,5 +121,3 @@ func (tc *UserController) ResetPassword(c *gin.Context) {
     }
     c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset"})
 }
-
-

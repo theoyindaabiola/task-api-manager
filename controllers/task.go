@@ -1,17 +1,16 @@
 package controllers
 
 import (
-	"net/http" // allows hhtp requests
+	"net/http"
 	"taskapi/dto"
 	"taskapi/models"
 	"taskapi/services"
 
-	"github.com/gin-gonic/gin" // web framework
-	// "github.com/google/uuid"
+	"github.com/gin-gonic/gin"
 )
 
 /**
-	we need the service instance to be able to send the payload to it and the functions
+	service instance needed to send the payload to it and the functions
 	has to be connected to this instance
 **/
 
@@ -25,9 +24,7 @@ func NewTaskController(taskService *services.TaskService, userService *services.
 }
 
 // context gets into the body of your package. c is an instance of pointing to the gin.Context
-func (tc *TaskController) CreateTask(c *gin.Context) { 
-	// var task models.Task // placeholder to hold the task/payload to be proccessed
-
+func (tc *TaskController) CreateTask(c *gin.Context) {
 	// security: this avoid users ability to override models.task parameters
 	var taskInput struct {
         Title       string `json:"title" binding:"required"`
@@ -41,31 +38,27 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 		return
 	}
 
-	// Get user_id from context
+	// get user_id from context
     userID, _ := c.Get("user_id")
-	userIDStr, ok := userID.(string) // // asserts the userID is a string
+
+	// asserts the userID is a string
+	userIDStr, ok := userID.(string) 
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
         return
     }
 
-	// asserts the userID is a string for use in dao
-	// userIDStr, ok := userID.(string) // returns a string and boolean
-	// if !ok {
-	// 	c.JSON(500, gin.H{"error": "Invalid user ID type"})
-	// 	c.Abort()
-	// 	return
-	// }
-
-	// Create task
+	// create task
     task := models.Task{
         Title:       taskInput.Title,
         Description: taskInput.Description,
         CreatedBy:   userIDStr,
     }
 
-	// creates the database and return error in JSON format
-	// tc.TaskService connects to the services and call the CreateTask()
+	/**
+		creates the database and return error in JSON format
+		tc.TaskService connects to the services and call the CreateTask()
+	**/
 	if err := tc.TaskService.CreateTask(&task); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -76,7 +69,9 @@ func (tc *TaskController) CreateTask(c *gin.Context) {
 
 // c is an instance of gin.Context, and the instance is needed
 func (tc *TaskController) GetTasks(c *gin.Context) {
-	tasks, err := tc.TaskService.GetTasks() // calls the database
+	// call the services then database
+	tasks, err := tc.TaskService.GetTasks()
+
 	// return error if there is an issue with getting response from the database
 	if err != nil { 
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -90,56 +85,33 @@ func (tc *TaskController) GetTask(c *gin.Context) {
 	taskID := c.Param("id")
 
 	userID, _ := c.Get("user_id")
-	userIDStr, ok := userID.(string) // asserts the userID is a string
+	// asserts the userID is a string
+	userIDStr, ok := userID.(string) 
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
         return
     }
 
 	task, err := tc.TaskService.GetTask(taskID, userIDStr)
-	// return error message if there is an issue with getting response from the database
+	// return error message if task not found
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Task not found"})
 	}
 	c.JSON(http.StatusOK, task)
 }
 
-// func (tc *TaskController) UpdateTask(c *gin.Context) {
-// 	id := c.Param("id") // needed as the key, coming from the URL request
-
-// 	// convert id to an uuid
-// 	taskId, err := uuid.Parse(id)
-// 	if err != nil {
-// 		c.JSON(400, gin.H{"error": "Invalid task ID."})
-// 	}
-
-// 	var task map[string]interface{}
-// 	// get and confirm that there is no error with the payload
-// 	if err := c.ShouldBindJSON(&task); err != nil {
-// 		// if error, return error using http in JSON format using the gin context
-// 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()}) 
-// 		return
-// 	}
-
-// 	// task.ID = uint(taskId)
-// 	if err := tc.TaskService.UpdateTask(taskId, userID, task); err != nil {
-// 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-// 		return
-// 	}
-// 	c.JSON(http.StatusOK, task)
-// }
-
-// WITHOUT UUID
 func (tc *TaskController) UpdateTask(c *gin.Context) {
-	taskID := c.Param("id") // needed as the key, coming from the URL request
+	// needed as the key, coming from the URL request
+	taskID := c.Param("id")
 
 	userID, _ := c.Get("user_id")
-	userIDStr, ok := userID.(string) // asserts the userID is a string
+	userIDStr, ok := userID.(string)
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
         return
     }
 
+	// payload placeholder
 	var task map[string]interface{}
 	// get and confirm that there is no error with the payload
 	if err := c.ShouldBindJSON(&task); err != nil {
@@ -148,7 +120,6 @@ func (tc *TaskController) UpdateTask(c *gin.Context) {
 		return
 	}
 
-	// task.ID = uint(taskId)
 	if err := tc.TaskService.UpdateTask(taskID, userIDStr, task); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -156,7 +127,10 @@ func (tc *TaskController) UpdateTask(c *gin.Context) {
 	c.JSON(http.StatusOK, task)
 }
 
-// DelegateTask is a complex business logic  and requires multiple validations across the daos(user, task & permission)
+/** 
+	DelegateTask is a complex business logic
+	Requires multiple validations across the daos(user, task & permission)
+**/ 
 func (tc *TaskController) DelegateTask(c *gin.Context) {
 	taskID := c.Param("id")
 
@@ -169,7 +143,7 @@ func (tc *TaskController) DelegateTask(c *gin.Context) {
 	}
 
 	userID, _ := c.Get("user_id")
-	userIDStr, ok := userID.(string) // asserts the userID is a string
+	userIDStr, ok := userID.(string)
     if !ok {
         c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
         return
@@ -291,6 +265,3 @@ func (tc *TaskController) DeleteTask(c *gin.Context) {
 	}
 	c.JSON(http.StatusNoContent, "Task deleted succefully")
 }
-
-// what if I want to create an admin access control? this would change the architecture, 
-// meaning that the 
