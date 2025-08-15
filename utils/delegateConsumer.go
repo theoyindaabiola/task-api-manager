@@ -64,8 +64,6 @@ func DelegationConsumer() error{
             }
             log.Printf("Task %s delegated to %s (%s): %s",
                 delegation.TaskID, delegation.DelegateeEmail, delegation.DelegateeID, delegation.TaskTitle)
-            // TODO: Send email or in-app notification
-            // e.g., call email service with delegation details
         }
     }()
 

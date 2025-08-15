@@ -55,7 +55,6 @@ func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmai
 
 	// now create a queue
 	q, err := ch.QueueDeclare(
-		// os.Getenv("EMAIL_VERIFICATION_QUEUE"), // routing key
 		queue,
 		true,
 		false,
