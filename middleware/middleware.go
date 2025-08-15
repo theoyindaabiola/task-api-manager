@@ -18,6 +18,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			c.Abort()
 			return
 		}
+
 		// check tokenString if it's present and trim off the "Bearer" prefix, it's not needed
 		// extract the token from the tokenString
 		tokenString := strings.TrimPrefix(authorizationHeader, "Bearer ")
@@ -27,6 +28,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
+
 		// uses AbortWithStatusJSON to stop further processing of the request if the token is invalid
 		// checks claims are valid
 		claims, ok := token.Claims.(jwt.MapClaims)

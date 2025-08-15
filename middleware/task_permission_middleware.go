@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// This file is only for is only for permission checks
 /*
+	This file is only for is only for permission checks
 	Authenticate the permission to be created.
 	taskDAO *dao.TaskDAO gives access to the TaskDAO struct functions e.g GetTaskDB.
 */
@@ -118,6 +118,5 @@ func TaskAccessMiddleware(taskDAO *dao.TaskDAO, permDAO *dao.TaskPermissionDAO, 
 		}
 
 		c.Next()
-
 	}
 }
