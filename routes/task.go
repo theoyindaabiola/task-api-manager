@@ -29,6 +29,3 @@ func RegisterRoutes(router *gin.Engine, taskController *controllers.TaskControll
 
 	}
 }
-// Compare this snippet from services/task.go:
-
-// ??? Can't I use taskController all through? instead of the JWTAuthMiddleware, as a user how do I access the middleware directly?
