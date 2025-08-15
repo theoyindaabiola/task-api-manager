@@ -81,17 +81,19 @@ func (s *UserService) LoginUser(payload *models.User) (string, error) {
 	if !user.Verified {
 		return "", errors.New("user not verified")
 	}
-	// fmt.Println("my db password & payload password", user.Password, payload.Password)
+
 	// compare the hashed passwords if user exists
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
 		return "", errors.New("invalid credentials")
-		// return "", errors.New(err.Error()) // get the actual error
 	}
 
-	// if valid, create a token for the user
-	claims := jwt.MapClaims{ // MapClaim is flexible
+	/** 
+		if valid, create a token for the user
+		MapClaim is flexible
+	**/
+	claims := jwt.MapClaims{
 		"user_id": user.ID, // from the db bcos it is reliable
-		"exp": time.Now().Add(time.Hour * 48).Unix(),
+		"exp": time.Now().Add(time.Hour * 48).Unix(), // set the time
 		"issuer": "task-api-manager",
 	}
 	// get the token signed
@@ -157,4 +159,3 @@ func ParseToken(tokenString string) (*jwt.Token, error) {
 		return jwtSecret, nil
 	})				
 }
-

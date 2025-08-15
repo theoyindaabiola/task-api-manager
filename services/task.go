@@ -1,14 +1,11 @@
 package services
 
 import (
-	// "fmt"
 	"errors"
 	"os"
-	"taskapi/dao"    // needs to interact with it
-	"taskapi/models" // needs the model for the db
+	"taskapi/dao"
+	"taskapi/models"
 	"taskapi/utils"
-
-	// "github.com/google/uuid"
 )
 
 /**
@@ -135,7 +132,6 @@ func (s *TaskService) RevokePermission(taskID, ownerID, delegateeID string) erro
 
 	return nil
 }
-
 
 func (s *TaskService) DeleteTask(taskID, userID string) error {
 	if err := s.AskPermission(taskID, userID); err != nil {
