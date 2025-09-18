@@ -88,3 +88,19 @@ func (dao *UserDAO) GetUserResetToken(ResetToken string) (*models.User, error) {
 func (dao *UserDAO) Update(user *models.User) error {
     return dao.DB.Save(user).Error
 }
+
+func (dao *UserDAO) CreateOTP(otp *models.OtpVerification) error {
+	return dao.DB.Create(otp).Error // to save otp only
+}
+
+func (dao *UserDAO) GetOTPByCodeAndUser(userID, code string) (*models.OtpVerification, error) {
+	var otp models.OtpVerification
+	if err := dao.DB.Where("user_id = ? AND otp_code = ?", userID, code).First(&otp).Error; err != nil {
+		return nil, err
+	}
+	return &otp, nil
+}
+
+func (dao *UserDAO) Update2FA(userID string, enabled bool) error {
+    return dao.DB.Model(&models.User{}).Where("id = ?", userID).Update("enabled_2fa", enabled).Error
+}
