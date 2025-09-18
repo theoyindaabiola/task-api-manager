@@ -18,5 +18,7 @@ func RegisterUserRoutes(router *gin.Engine, userController *controllers.UserCont
 		userRoutes.POST("/login", userController.LoginUser)
 		userRoutes.POST("/forgot-password", userController.ForgotPassword)
 		userRoutes.POST("/reset-password", userController.ResetPassword)
+		userRoutes.POST("/request-otp", userController.RequestOTP)
+		userRoutes.POST("/verify-otp", userController.VerifyOTP)
 	}
 }
