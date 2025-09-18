@@ -2,10 +2,12 @@ package utils
 
 import (
 	"crypto/rand"
-	"strconv"
 	"encoding/hex"
+	"fmt"
 	"log"
+	"math/big"
 	"os"
+	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
