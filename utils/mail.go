@@ -54,3 +54,13 @@ func GenerateVerificationCode() string {
 	}
 	return hex.EncodeToString(bytes)
 }
+
+// generate 2fa OTP
+func Generate2FACode() string {
+	// random 6 digit code 0 - 999999
+	num, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		log.Fatal("Failed to generate OTP code: ", err)
+	}
+	return fmt.Sprintf("%06d", num.Int64())
+}
