@@ -81,6 +81,7 @@ func (s *TaskService) AskPermission(taskID string, userID string) error {
 }
 
 func (s *TaskService) DelegateTask(permission *models.TaskDelegation) error {
+	// save the task delegation details coming from the controller in database
 	if err := s.TaskPermissionDAO.CreatePermission(permission); err != nil {
         return err
     }
