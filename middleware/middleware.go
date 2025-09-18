@@ -22,6 +22,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		// check tokenString if it's present and trim off the "Bearer" prefix, it's not needed
 		// extract the token from the tokenString
 		tokenString := strings.TrimPrefix(authorizationHeader, "Bearer ")
+
 		// check the token validity by calling the ParseToken function from the services package
 		token, err := services.ParseToken(tokenString)
 		if err != nil {
@@ -30,7 +31,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		// uses AbortWithStatusJSON to stop further processing of the request if the token is invalid
-		// checks claims are valid
+		// checks claims are valid, extract claim
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
