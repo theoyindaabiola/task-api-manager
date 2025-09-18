@@ -87,18 +87,7 @@ func (s *UserService) LoginUser(payload *models.User) (string, error) {
 		return "", errors.New("invalid credentials")
 	}
 
-	/** 
-		if valid, create a token for the user
-		MapClaim is flexible
-	**/
-	claims := jwt.MapClaims{
-		"user_id": user.ID, // from the db bcos it is reliable
-		"exp": time.Now().Add(time.Hour * 48).Unix(), // set the time
-		"issuer": "task-api-manager",
-	}
-	// get the token signed
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(jwtSecret)
+	return GenerateJWTToken(user, false)
 }
 
 func (s *UserService) ForgotPasswordService(email string) error {
