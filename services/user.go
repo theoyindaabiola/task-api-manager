@@ -2,17 +2,17 @@ package services
 
 import (
 	"fmt"
-	"taskapi/dao"    // needs to interact with it
+	"taskapi/dao" // needs to interact with it
+	// "taskapi/middleware"
 	"taskapi/models" // needs the model for the db
 	"taskapi/utils"
 
-	"github.com/golang-jwt/jwt/v4"
-	"golang.org/x/crypto/bcrypt"
-
-	// "github.com/google/uuid"
 	"errors"
 	"os"
 	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
