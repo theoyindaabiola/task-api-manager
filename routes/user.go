@@ -2,6 +2,8 @@ package routes
 
 import (
 	"taskapi/controllers"
+	"taskapi/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -18,7 +20,9 @@ func RegisterUserRoutes(router *gin.Engine, userController *controllers.UserCont
 		userRoutes.POST("/login", userController.LoginUser)
 		userRoutes.POST("/forgot-password", userController.ForgotPassword)
 		userRoutes.POST("/reset-password", userController.ResetPassword)
-		userRoutes.POST("/request-otp", userController.RequestOTP)
-		userRoutes.POST("/verify-otp", userController.VerifyOTP)
+
+		// 2FA routes allowed in middleware
+		userRoutes.POST("/enable-totp", middleware.JWTAuthMiddleware(), userController.EnableTOTP)
+		userRoutes.POST("/verify-totp", middleware.JWTAuthMiddleware(), userController.VerifyTOTP)
 	}
 }
