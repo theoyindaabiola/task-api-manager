@@ -20,25 +20,6 @@ type ResetPasswordDTO struct {
 	Password		string `json:"password" binding:"required"`
 }
 
-type Toggle2FARequest struct {
-	Enabled 		bool `json:"enabled"`
-}
-
-type Toggle2FAResponse struct {
-    UserID     		string `json:"user_id"`
-    Enabled2FA 		bool   `json:"enabled_2fa"`
-    Message    		string `json:"message"`
-	Token			string `json:"token"`
-}
-
-type RequestOtpDTO struct {
-	Email 			string `json:"email" binding:"required"`
-}
-
-type VerifyOtpDTO struct {
-	OTP				string `json:"otp" binding:"required"`
-}
-
-type UserResponseDTO struct {
-	IsOtpVerified	bool `json:"is_otp_verified"`
+type VerifyTOTPDTO struct {
+	Code 			string `json:"code" binding:"required"`
 }
