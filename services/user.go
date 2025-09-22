@@ -13,6 +13,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/pquerna/otp/totp"
 )
 
 type UserService struct {
@@ -85,6 +86,11 @@ func (s *UserService) LoginUser(payload *models.User) (string, error) {
 	// compare the hashed passwords if user exists
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
 		return "", errors.New("invalid credentials")
+	}
+
+	if !user.Enabled2FA {
+		// no 2fa, issue long-lived token
+		return GenerateJWTToken(user, true)
 	}
 
 	return GenerateJWTToken(user, false)
@@ -241,21 +247,21 @@ func (s *UserService) VerifyOTP(userID, code string) (string, error) {
 
 }
 
-func GenerateJWTToken(user *models.User, otpVerified bool) (string, error) {
-    // set short expiry if OTP not verified yet
+func GenerateJWTToken(user *models.User, totpVerified bool) (string, error) {
+	// set short expiry if TOTP not verified yet
     var expiry time.Duration
-    if otpVerified {
-        expiry = time.Hour * 48 // normal long session
-    } else {
-        expiry = time.Minute * 10 // short token for OTP pending
-    }
+	if totpVerified {
+		expiry = time.Hour * 48 // 2 days for full session
+	} else {
+		expiry = time.Minute * 10 // short session until TOTP is verified
+	}
 
     claims := jwt.MapClaims{
-        "user_id":         user.ID,
-        "enabled_2fa":     user.Enabled2FA,
-        "is_otp_verified": otpVerified,
-        "exp":             time.Now().Add(expiry).Unix(),
-        "issuer":          "task-api-manager",
+        "user_id":          user.ID,
+        "enabled_2fa":      user.Enabled2FA,
+        "is_totp_verified": totpVerified,
+        "exp":              time.Now().Add(expiry).Unix(),
+		"issuer":           "task-api-manager",
     }
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
