@@ -44,7 +44,7 @@ TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 }
 verify
 login 
-token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NTQzMTI5MzQsImlzc3VlciI6InRhc2stYXBpLW1hbmFnZXIiLCJ1c2VyX2lkIjoiYWZmYTcwNGItNTZlZi00ZjQ0LWFiZDMtNWQ5MTI0YjBlMjJiIn0.sHPWzBF1gGE-KwCCV_ISS8wHZnAzJByJ74AIiHn2ZhA"
+token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbmFibGVkXzJmYSI6dHJ1ZSwiZXhwIjoxNzU4NTA4MjAwLCJpc190b3RwX3ZlcmlmaWVkIjpmYWxzZSwiaXNzdWVyIjoidGFzay1hcGktbWFuYWdlciIsInVzZXJfaWQiOiI3MjhjYmY1ZS0yN2NkLTQwNGItYTQwYS1hYzBlNjE4NWY4MjQifQ.JZWKxaVW2bTWTyXZXoZYzZPQ1Mj8KVpxi6dy-q59vuY"
 
 # CREATE-TASK
 update the token in the Headers
@@ -73,7 +73,7 @@ TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 ### URLS
 # USER
 POST: localhost:8080/api/users/register
-GET: localhost:8080/api/users/verify-email?code=dea01a277d5e485f4aa3699e20b7a1c6
+GET: localhost:8080/api/users/verify-email?code=064bc7d09f5daf558c553fe2e53b8985
 POST: localhost:8080/api/users/login
 
 # PASSWORD
@@ -91,11 +91,6 @@ POST: localhost:8080/api/tasks/d3b7fbff-b87e-40bf-b0e8-5586f298de70/delegate    
 PATCH: localhost:8080/api/tasks/<task-id>/permission    // update the permission by owner
 DELETE localhost:8080/api/tasks/<task-id>/permission    // revoke permission by owner
 
-
-DB_USER=
-DB_PASSWORD=
-DB_NAME=neondb
-DB_HOST=
-DB_PORT=5432
-SSL_MODE=require 
-JWT_SECRET=
+# 2FA - TOTP 
+POST: localhost:8080/api/users/enable-totp // enable2fa-totp
+POST: localhost:8080/api/users/verify-totp // verify-totp-code
