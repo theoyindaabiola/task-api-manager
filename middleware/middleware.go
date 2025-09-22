@@ -44,34 +44,20 @@ func JWTAuthMiddleware() gin.HandlerFunc {
             return
         }
 
-		// 2FA properties checks
+		// check 2FA/TOTP claims
 		enabled2FA, ok := claims["enabled_2fa"].(bool)
 		if !ok {
 			// claim is missing
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing 2FA claim",})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing 2FA claim"})
 			return
 		}
-		otpVerified, _ := claims["is_otp_verified"].(bool)
+		totpVerified, _ := claims["is_totp_verified"].(bool)
 
-		// Enforce OTP if 2FA enabled
-		if enabled2FA && !otpVerified {
-			// list of allowed paths
-			allowedPaths := []string{"/request-otp", "/:id/verify-otp"}
-			isAllowed := false
-			// loop through the list to identify the allowed paths
-			for _, path := range allowedPaths {
-				if c.Request.URL.Path == path {
-					isAllowed = true
-					break
-				}
-			}
-			// if allowed is still false, means the URL does not match the allowed paths
-			if !isAllowed {
-				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-					"error": "2FA required. Please verify OTP.",
-				})
-				return
-			}
+		// enforce TOTP if 2FA enabled
+		if enabled2FA && !totpVerified && !strings.HasSuffix(c.FullPath(), "/verify-totp") {
+            c.JSON(http.StatusForbidden, gin.H{"error": "Cannot access this path. 2FA is enabled, please verify TOTP."})
+            c.Abort()
+            return
 		}
 
 		// set the user_id from services/user.go, in the context so that it can be accessed in the handler
