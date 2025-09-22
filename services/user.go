@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"taskapi/dao" // needs to interact with it
-	// "taskapi/middleware"
 	"taskapi/models" // needs the model for the db
 	"taskapi/utils"
 
@@ -144,107 +143,55 @@ func (s *UserService) GetUserByID(id string) (*models.User, error) {
     return user, nil
 }
 
-// update user
-func (s *UserService) Toggle2FA(userID string, enabled bool) (string, error) {
-	// get the user first
-	user, err := s.UserDAO.GetUserByIdDB(userID)
-	if err != nil {
-		return "", err
-	}
-
-	// update the 2fa according to user's request
-	user.Enabled2FA = enabled
-
-	// update the user
-	err = s.UserDAO.Update(user)
-	if err != nil {
-		return "", err
-	}
-
-	return GenerateJWTToken(user, false)
-}
-
-func (s *UserService) RequestOTP(email string) (*models.OtpVerification, error) {
-	// get user by email
-	user, err := s.UserDAO.GetUserByEmail(email)
+// enable TOTP generates then store a new TOTP secret for the user
+func (s *UserService) EnableTOTP(userID string) (string, error) {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
     if err != nil {
-        return nil, err
+        return "", err
     }
 
-	// generate otp code and expiring time
-	generateOtp := utils.Generate2FACode()
-	expireAt := time.Now().Add(5 * time.Minute)
+    // generate secret + key
+    key, err := totp.Generate(totp.GenerateOpts{
+        Issuer:      "TaskAPI",
+        AccountName: user.Email,
+    })
+    if err != nil {
+        return "", err
+    }
 
-	// set up the user&otp model
-	otp := &models.OtpVerification{
-		UserID:    user.ID,
-		OtpCode:   generateOtp,
-		ExpiresAt: expireAt,
-		Verified:  false, // always false at new otp creation
-	}
+    // store secret in DB
+    secret := key.Secret()
+    user.TOTPSecret = &secret
+    user.Enabled2FA = true
 
-	// store the otp in the database
-	if err := s.UserDAO.CreateOTP(otp); err != nil {
-		return nil, fmt.Errorf("failed to create OTP: %w", err)
-	}
+    if err := s.UserDAO.Update(user); err != nil {
+        return "", err
+    }
 
-	// send the otp via user's email
-	if err := utils.PublishMessage(
-		os.Getenv("EMAIL_OTP_QUEUE"),
-		otp.UserID.String(),
-		generateOtp,
-		"",
-		"", 
-		user.Email,
-		"",
-	); err != nil {
-		return otp, fmt.Errorf("OTP saved but not sent: %w", err)
-	}
-	return otp, nil
+    // return URL: to be turned to qr code
+    return key.URL(), nil
 }
 
-func (s *UserService) VerifyOTP(userID, code string) (string, error) {
-	// check DB for the otp code
-	otp, err := s.UserDAO.GetOTPByCodeAndUser(userID, code)
-	if err != nil {
-		return "", errors.New("invalid OTP")
-	}
+// VerifyTOTP to checks the provided OTP against the stored secret
+func (s *UserService) VerifyTOTP(userID, code string) (string, error) {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
+    if err != nil {
+        return "", err
+    }
 
-	// check expiry
-	if time.Now().After(otp.ExpiresAt) {
-		return "", fmt.Errorf("OTP expired")
-	}
+	// check if TOTP is enabled for the user
+    if !user.Enabled2FA || user.TOTPSecret == nil {
+		return "", fmt.Errorf("TOTP not enabled")
+	}	
 
-	// check if already used
-	if otp.Verified {
-		return "", fmt.Errorf("OTP already used")
-	}
+    // validate the OTP against secret, create a variable that holds the validity
+    valid := totp.Validate(code, *user.TOTPSecret)
+    if !valid {
+        return "", fmt.Errorf("invalid TOTP code")
+    }
 
-	// mark OTP as verified
-	otp.Verified = true
-	if err := s.UserDAO.DB.Save(otp).Error; err != nil {
-		return "", err
-	}
-
-	// update 2FA flag
-	if err := s.UserDAO.Update2FA(userID, true); err != nil {
-		return "", err
-	}
-
-	// reload fresh user
-	user, err := s.UserDAO.GetUserByIdDB(userID)
-	if err != nil {
-		return "", fmt.Errorf("user not found")
-	}
-
-	// generate JWT reflecting current 2FA state
-	signedToken, err := GenerateJWTToken(user, user.Enabled2FA) 
-	if err != nil { 
-		return "", err 
-	}
-
-	return signedToken, nil
-
+    // generate fresh long session JWT
+    return GenerateJWTToken(user, true)
 }
 
 func GenerateJWTToken(user *models.User, totpVerified bool) (string, error) {
