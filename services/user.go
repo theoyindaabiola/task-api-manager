@@ -150,6 +150,11 @@ func (s *UserService) EnableTOTP(userID string) (string, error) {
         return "", err
     }
 
+	// block enabling again if already active
+	if user.Enabled2FA && user.TOTPSecret != nil {
+		return "", fmt.Errorf("2FA is already enabled for this account")
+	}
+
     // generate secret + key
     key, err := totp.Generate(totp.GenerateOpts{
         Issuer:      "TaskAPI",
@@ -181,7 +186,7 @@ func (s *UserService) VerifyTOTP(userID, code string) (string, error) {
 
 	// check if TOTP is enabled for the user
     if !user.Enabled2FA || user.TOTPSecret == nil {
-		return "", fmt.Errorf("TOTP not enabled")
+		return "", fmt.Errorf("2FA not enabled")
 	}	
 
     // validate the OTP against secret, create a variable that holds the validity
