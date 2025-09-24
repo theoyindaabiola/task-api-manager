@@ -24,5 +24,6 @@ func RegisterUserRoutes(router *gin.Engine, userController *controllers.UserCont
 		// 2FA routes allowed in middleware
 		userRoutes.POST("/enable-totp", middleware.JWTAuthMiddleware(), userController.EnableTOTP)
 		userRoutes.POST("/verify-totp", middleware.JWTAuthMiddleware(), userController.VerifyTOTP)
+		userRoutes.POST("/disable-totp", middleware.JWTAuthMiddleware(), userController.DisableTOTP)
 	}
 }
