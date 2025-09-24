@@ -199,6 +199,25 @@ func (s *UserService) VerifyTOTP(userID, code string) (string, error) {
     return GenerateJWTToken(user, true)
 }
 
+func (s *UserService) DisableTOTP(userID string) (string, error) {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
+    if err != nil {
+        return "", err
+    }
+
+	// update the fields to disable 2fa
+    user.Enabled2FA = false
+    user.TOTPSecret = nil
+    user.IsTotpVerified = false
+
+    if err := s.UserDAO.DB.Save(user).Error; err != nil {
+        return "", err
+    }
+
+    // issue a fresh token without 2FA requirement
+    return GenerateJWTToken(user, true)
+}
+
 func GenerateJWTToken(user *models.User, totpVerified bool) (string, error) {
 	// set short expiry if TOTP not verified yet
     var expiry time.Duration
