@@ -169,3 +169,24 @@ func (tc *UserController) VerifyTOTP(c *gin.Context) {
 		"token":   token,
 	})
 }
+
+func (tc *UserController) DisableTOTP(c *gin.Context) {
+	// get userID from claims
+    userIDVal, exists := c.Get("user_id")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+    userID := userIDVal.(string)
+
+    token, err := tc.UserService.DisableTOTP(userID)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+		"message": "2FA has been disabled successfully, update header with the new token",
+		"token": token,
+	})
+}
