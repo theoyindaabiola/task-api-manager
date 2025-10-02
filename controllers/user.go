@@ -5,6 +5,7 @@ import (
 	"taskapi/dto"
 	"taskapi/models"
 	"taskapi/services"
+	"taskapi/utils"
 
 	"github.com/gin-gonic/gin" // web framework
 )
@@ -121,7 +122,19 @@ func (tc *UserController) ResetPassword(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset"})
 }
 
-func (tc *UserController) EnableTOTP(c *gin.Context) {
+func (tc *UserController) EnableSMS(c *gin.Context) {
+	var payload dto.EnableSMSDTO
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Validate Nigerian phone number
+    if !utils.IsValidPhoneNumber(payload.PhoneNumber) {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Nigerian phone number"})
+        return
+    }
+	
 	// get userID from claims
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -131,19 +144,29 @@ func (tc *UserController) EnableTOTP(c *gin.Context) {
 	userID := userIDVal.(string)
 
 	// call service to generate secret + save in DB
-	qrCodeURL, err := tc.UserService.EnableTOTP(userID)
-	if err != nil {
+	if err := tc.UserService.EnableSMS(userID, payload.PhoneNumber); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"qr_code_url": qrCodeURL,
-		"message": "TOTP has been enabled. Scan the QR code in your authenticator app, then log in again and enter the 6-digit code to complete setup.",
+		"message": "SMS 2FA enabled. Check your phone for the OTP and verify",
 	})	
 }
 
-func (tc *UserController) VerifyTOTP(c *gin.Context) {
+func (tc *UserController) UpdatePhoneNumber(c *gin.Context) {
+	var payload dto.UpdatePhoneNumberDTO
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	// Validate Nigerian phone number
+    if !utils.IsValidPhoneNumber(payload.PhoneNumber) {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid Nigerian phone number"})
+        return
+    }
+
 	// get userID from claims
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -152,25 +175,65 @@ func (tc *UserController) VerifyTOTP(c *gin.Context) {
 	}
 	userID := userIDVal.(string)
 
-	var payload dto.VerifyTOTPDTO
+	// call service to generate secret to update DB
+	if err := tc.UserService.UpdatePhoneNumber(userID, payload.PhoneNumber); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Phone number updated. OTP sent for verification. SMS 2FA will be active after verification.",
+	})	
+}
+
+func (tc *UserController) RequestSMS(c *gin.Context) {
+    // get userID from claims
+	userIDVal, exists := c.Get("user_id")
+    if !exists {
+        c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+        return
+    }
+    userID := userIDVal.(string)
+
+    err := tc.UserService.RequestSMS(userID)
+    if err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{
+        "message": "A new SMS OTP has been sent to your phone.",
+    })
+}
+
+func (tc *UserController) VerifySMS(c *gin.Context) {
+	// get userID from claims
+	userIDVal, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+	userID := userIDVal.(string)
+
+	var payload dto.VerifySMSDTO
 	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
-	token, err := tc.UserService.VerifyTOTP(userID, payload.Code)
+	token, err := tc.UserService.VerifySMS(userID, payload.Code)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "TOTP code verified successfully",
+		"message": "SMS OTP verified successfully",
 		"token":   token,
 	})
 }
 
-func (tc *UserController) DisableTOTP(c *gin.Context) {
+func (tc *UserController) DisableSMS(c *gin.Context) {
 	// get userID from claims
     userIDVal, exists := c.Get("user_id")
     if !exists {
@@ -179,7 +242,7 @@ func (tc *UserController) DisableTOTP(c *gin.Context) {
     }
     userID := userIDVal.(string)
 
-    token, err := tc.UserService.DisableTOTP(userID)
+    token, err := tc.UserService.DisableSMS(userID)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
