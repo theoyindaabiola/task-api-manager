@@ -26,10 +26,11 @@ func main() {
 	// main.go as the entry point, need the routes to use
 
 	// run the goroutine, this runs forever to send out emails
-	go utils.EmailConsumer((os.Getenv("EMAIL_VERIFICATION_QUEUE"))) 
-	go utils.EmailConsumer((os.Getenv("EMAIL_RESET_QUEUE")))
-	go utils.EmailConsumer((os.Getenv("TASK_DELEGATION_QUEUE")))
-	go utils.EmailConsumer((os.Getenv("EMAIL_OTP_QUEUE"))) // ????
+	go utils.ProcessQueueMessages((os.Getenv("EMAIL_VERIFICATION_QUEUE"))) 
+	go utils.ProcessQueueMessages((os.Getenv("EMAIL_RESET_QUEUE")))
+	go utils.ProcessQueueMessages((os.Getenv("TASK_DELEGATION_QUEUE")))
+	go utils.ProcessQueueMessages((os.Getenv("EMAIL_OTP_QUEUE")))
+	go utils.ProcessQueueMessages((os.Getenv("SMS_OTP_QUEUE")))
 
 	// Initialize dao, services and controller USER
 	userDao := dao.NewUserDAO(db)
