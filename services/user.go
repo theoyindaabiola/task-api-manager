@@ -154,62 +154,110 @@ func (s *UserService) GetUserByID(id string) (*models.User, error) {
 }
 
 // enable TOTP generates then store a new TOTP secret for the user
-func (s *UserService) EnableTOTP(userID string) (string, error) {
-    user, err := s.UserDAO.GetUserByIdDB(userID)
-    if err != nil {
-        return "", err
-    }
-
-	// block enabling again if already active
-	if user.Enabled2FA && user.TOTPSecret != nil {
-		return "", fmt.Errorf("2FA is already enabled for this account")
+func (s *UserService) EnableSMS(userID, phoneNumber string) error {
+	// get user from DB
+	user, err := s.UserDAO.GetUserByIdDB(userID)
+	if err != nil {
+		return err
 	}
 
-    // generate secret + key
-    key, err := totp.Generate(totp.GenerateOpts{
-        Issuer:      "TaskAPI",
-        AccountName: user.Email,
-    })
+	// block enabling again if already active
+	if user.Enabled2FA {
+		return fmt.Errorf("SMS 2FA already enabled, verify or request a new OTP")
+	}
+
+	// update phone number and enable flag
+	user.PhoneNumber = &phoneNumber
+	user.Enabled2FA = true
+	user.IsSmsVerified = false
+
+	if err := s.UserDAO.Update(user); err != nil {
+		return err
+	}
+
+	// after enabling, issue the OTP
+	if err := s.IssueSMSOTP(user); err != nil {
+		return fmt.Errorf("failed to issue SMS OTP: %w", err)
+	}
+
+	return nil
+}
+
+// updatePhoneNumber changes the user’s phone and reissues OTP verification.
+func (s *UserService) UpdatePhoneNumber(userID, newPhoneNumber string) error {
+	user, err := s.UserDAO.GetUserByIdDB(userID)
+	if err != nil {
+		return err
+	}
+
+	if !user.Enabled2FA {
+		return fmt.Errorf("SMS 2FA is not enabled")
+	}
+
+	if user.PhoneNumber != nil && *user.PhoneNumber == newPhoneNumber {
+		return fmt.Errorf("new phone number cannot be the same as the existing one")
+	}
+
+	// update phone number and reset verification
+	user.PhoneNumber = &newPhoneNumber
+	user.IsSmsVerified = false
+
+	if err := s.UserDAO.Update(user); err != nil {
+		return err
+	}
+
+	// send a new OTP to verify the updated number
+	if err := s.IssueSMSOTP(user); err != nil {
+		return fmt.Errorf("failed to issue SMS OTP: %w", err)
+	}
+
+	return nil
+}
+
+
+// this function below can take any phone number if the user's number (registered or from enable2fa function) has issue getting the otp code, but this is very risky
+func (s *UserService) RequestSMS(userID string) error {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
     if err != nil {
-        return "", err
+        return err
     }
-
-    // store secret in DB
-    secret := key.Secret()
-    user.TOTPSecret = &secret
-    user.Enabled2FA = true
-
-    if err := s.UserDAO.Update(user); err != nil {
-        return "", err
+    if !user.Enabled2FA {
+        return fmt.Errorf("SMS 2FA not enabled")
     }
-
-    // return URL: to be turned to qr code
-    return key.URL(), nil
+    if user.PhoneNumber == nil || *user.PhoneNumber == "" {
+        return fmt.Errorf("no phone number on record")
+    }
+    return s.IssueSMSOTP(user) // same number, re-send OTP
 }
 
 // VerifyTOTP to checks the provided OTP against the stored secret
-func (s *UserService) VerifyTOTP(userID, code string) (string, error) {
+func (s *UserService) VerifySMS(userID, code string) (string, error) {
     user, err := s.UserDAO.GetUserByIdDB(userID)
     if err != nil {
         return "", err
     }
 
-	// check if TOTP is enabled for the user
-    if !user.Enabled2FA || user.TOTPSecret == nil {
-		return "", fmt.Errorf("2FA not enabled")
-	}	
-
-    // validate the OTP against secret, create a variable that holds the validity
-    valid := totp.Validate(code, *user.TOTPSecret)
-    if !valid {
-        return "", fmt.Errorf("invalid TOTP code")
+	if !user.Enabled2FA || user.SmsOTP == nil || user.SmsOTPExpiresAt == nil {
+        return "", fmt.Errorf("SMS 2FA not enabled or no OTP set")
+    }
+    if user.SmsOTPExpiresAt.Before(time.Now()) {
+        return "", fmt.Errorf("SMS OTP expired")
+    }
+    if *user.SmsOTP != code {
+        return "", fmt.Errorf("invalid SMS OTP")
+    }
+    user.IsSmsVerified = true
+    user.SmsOTP = nil
+    user.SmsOTPExpiresAt = nil
+    if err := s.UserDAO.Update(user); err != nil {
+        return "", err
     }
 
     // generate fresh long session JWT
     return GenerateJWTToken(user, true)
 }
 
-func (s *UserService) DisableTOTP(userID string) (string, error) {
+func (s *UserService) DisableSMS(userID string) (string, error) {
     user, err := s.UserDAO.GetUserByIdDB(userID)
     if err != nil {
         return "", err
@@ -217,10 +265,11 @@ func (s *UserService) DisableTOTP(userID string) (string, error) {
 
 	// update the fields to disable 2fa
     user.Enabled2FA = false
-    user.TOTPSecret = nil
-    user.IsTotpVerified = false
+    user.SmsOTP = nil
+    user.IsSmsVerified = false
+	user.SmsOTPExpiresAt = nil
 
-    if err := s.UserDAO.DB.Save(user).Error; err != nil {
+    if err := s.UserDAO.Update(user); err != nil {
         return "", err
     }
 
