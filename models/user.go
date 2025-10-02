@@ -13,12 +13,14 @@ type User struct {
 	Username 			string 			`gorm:"unique;not null" json:"username"`
 	Password			string 			`gorm:"not null" json:"-"`
 	Email				string 			`gorm:"unique;not null" json:"email"`
+	PhoneNumber			*string			`gorm:"unique" json:"phone_number"` // optionally empty - nil == null
 	Verified			bool   			`gorm:"default:false" json:"verified"`
-	Enabled2FA			bool			`gorm:"default:false" json:"enabled_2fa"`
-	IsTotpVerified		bool			`gorm:"default:false" json:"is_totp_verified"`
-	VerificationToken 	*string 		`gorm:"unique" json:"-"`
-	ResetToken			*string			`gorm:"unique" json:"-"`
-	TOTPSecret			*string			`json:"_"` 		// store secret for authenticator apps
+	Enabled2FA			bool			`gorm:"default:false" json:"enabled_2fa"`				// "sms", "totp", "email"
+	IsSmsVerified		bool			`gorm:"default:false" json:"is_sms_verified"`
+	VerificationToken 	*string 		`gorm:"unique" json:"-"` 			// optionally empty
+	ResetToken			*string			`gorm:"unique" json:"-"` 			// optionally empty
+	SmsOTP				*string			`json:"-"`							// optionally empty
+	SmsOTPExpiresAt		*time.Time		`gorm:"default:null" json:"-"`
 	ResetTokenExpiresAt *time.Time      `gorm:"default:null" json:"-"`
 	CreatedAt			time.Time 		`json:"created_at"`
 	UpdatedAt   		time.Time 		`json:"updated_at"`
