@@ -44,8 +44,8 @@ func main() {
 	taskController := controllers.NewTaskController(taskService, userService)
 
 	// Routessss
-	routes.RegisterUserRoutes(router, userController) 
-	routes.RegisterRoutes(router, taskController, taskDao, taskPermissionDAO) 
+	routes.RegisterUserRoutes(router, userController, userService) 
+	routes.RegisterRoutes(router, taskController, taskDao, taskPermissionDAO, userService) 
 
 	log.Println("Server started at: 8080")
 	if err := router.Run(":8080"); err != nil {
