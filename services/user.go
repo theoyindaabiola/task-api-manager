@@ -260,3 +260,31 @@ func ParseToken(tokenString string) (*jwt.Token, error) {
 		return jwtSecret, nil
 	})				
 }
+
+func (s *UserService) GenerateOTP() (string, time.Time) {
+    otp := utils.Generate2FACode()
+    expiresAt := time.Now().Add(5 * time.Minute)
+    return otp, expiresAt
+}
+
+func (s *UserService) IssueSMSOTP(user *models.User) error {
+	otp, expiresAt := s.GenerateOTP()
+
+	user.SmsOTP = &otp
+	user.SmsOTPExpiresAt = &expiresAt
+
+	if err := s.UserDAO.Update(user); err != nil {
+		return err
+	}
+
+	// Send OTP via SMS queue
+	return utils.PublishMessage(
+		os.Getenv("SMS_OTP_QUEUE"),
+		*user.PhoneNumber,
+		otp,
+		"sms_otp",
+		"",
+		"",
+		"",
+	)
+}
