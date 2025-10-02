@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-
+	"github.com/vonage/vonage-go-sdk"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -101,4 +101,21 @@ func ProcessQueueMessages(queueName string) error {
 	fmt.Println("[*] Waiting for messages. To exit press CTRL+C")
 	<-forever
 	return nil
+}
+
+func SendSMSOTP(phoneNumber, otp string) error {
+    apiKey := os.Getenv("VONAGE_API_KEY")
+    apiSecret := os.Getenv("VONAGE_API_SECRET")
+    auth := vonage.CreateAuthFromKeySecret(apiKey, apiSecret)
+    smsClient := vonage.NewSMSClient(auth)
+    message := fmt.Sprintf("Your TaskAPI verification code is: %s", otp)
+    response, errResp, err := smsClient.Send(phoneNumber, phoneNumber, message, vonage.SMSOpts{})
+    if err != nil {
+        return err
+    }
+    if response.Messages[0].Status != "0" {
+        return fmt.Errorf("SMS failed: %s", errResp.Messages[0].ErrorText)
+    }
+	log.Printf("Sent SMS OTP to %s", phoneNumber)
+    return nil
 }
