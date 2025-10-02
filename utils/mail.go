@@ -1,11 +1,7 @@
 package utils
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
 	"log"
-	"math/big"
 	"os"
 	"strconv"
 
@@ -46,23 +42,4 @@ func SendMail(email string, body, messageType string) error {
 	}
 	log.Printf("Sent %s email to %s", messageType, email)
 	return nil
-}
-
-func GenerateVerificationCode() string {
-	// create byte
-	bytes := make([]byte, 16)
-	if _, err := rand.Read(bytes); err != nil {
-		log.Fatal("Failed to generate verification code: ", err)
-	}
-	return hex.EncodeToString(bytes)
-}
-
-// generate 2fa OTP
-func Generate2FACode() string {
-	// random 6 digit code 0 - 999999
-	num, err := rand.Int(rand.Reader, big.NewInt(1000000))
-	if err != nil {
-		log.Fatal("Failed to generate OTP code: ", err)
-	}
-	return fmt.Sprintf("%06d", num.Int64())
 }
