@@ -12,7 +12,6 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
-	"github.com/pquerna/otp/totp"
 )
 
 type UserService struct {
@@ -92,7 +91,18 @@ func (s *UserService) LoginUser(payload *models.User) (string, error) {
 		return GenerateJWTToken(user, true)
 	}
 
-	return GenerateJWTToken(user, false)
+	// if 2FA enabled but phone not verified (new or changed number)
+	if !user.IsSmsVerified {
+		// send a new OTP to verify the updated number
+		if err := s.IssueSMSOTP(user); err != nil {
+    		return "", fmt.Errorf("failed to issue OTP: %w", err)
+		}
+		// issue only short-lived token until verification
+		return GenerateJWTToken(user, false)
+	}
+	
+	// At Enabled2FA = true and IsSmsVerified = true, issue long-lived token 
+	return GenerateJWTToken(user, true)
 }
 
 func (s *UserService) ForgotPasswordService(email string) error {
