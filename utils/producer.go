@@ -45,16 +45,14 @@ func PublishMessage (queue, recipient, code, messageType, delegateeID, delegatee
 	// if anything pannicks, close the connection
 	defer conn.Close()
 
-	// now connect to a channel/routes
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Printf("Failed to open channel: %v", err)
-		return err
+		log.Fatalf("Failed to open a channel: %v", err)
 	}
 	defer ch.Close()
 
-	// now create a queue
-	q, err := ch.QueueDeclare(
+	// SMS OTP queue     
+	_, err = ch.QueueDeclare(
 		queue,
 		true,
 		false,
@@ -63,14 +61,13 @@ func PublishMessage (queue, recipient, code, messageType, delegateeID, delegatee
 		nil,
 	)
 	if err != nil {
-		log.Printf("Failed to declare a queue: %v", err)
-		return err
+		log.Fatalf("Failed to declare queue %s: %v", os.Getenv("SMS_OTP_QUEUE"), err)
 	}
 
 	// if all works well, then publish the message
 	err = ch.Publish(
 		"",
-		q.Name,
+		queue,
 		false,
 		false,
 		amqp.Publishing{
