@@ -20,6 +20,18 @@ type ResetPasswordDTO struct {
 	Password		string `json:"password" binding:"required"`
 }
 
-type VerifyTOTPDTO struct {
+type EnableSMSDTO struct {
+	PhoneNumber		string `json:"phone_number" binding:"required"`
+}
+
+type UpdatePhoneNumberDTO struct {
+	PhoneNumber		string `json:"phone_number" binding:"required"`
+}
+
+type RequestSMSDTO struct {
+	PhoneNumber		string `json:"phone_number" binding:"required"`
+}
+
+type VerifySMSDTO struct {
 	Code 			string `json:"code" binding:"required"`
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-func JWTAuthMiddleware() gin.HandlerFunc {
+func JWTAuthMiddleware(userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// extract header from the request
 		authorizationHeader := c.GetHeader("Authorization")
@@ -44,20 +44,23 @@ func JWTAuthMiddleware() gin.HandlerFunc {
             return
         }
 
-		// check 2FA/TOTP claims
-		enabled2FA, ok := claims["enabled_2fa"].(bool)
-		if !ok {
-			// claim is missing
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing 2FA claim"})
-			return
-		}
-		totpVerified, _ := claims["is_totp_verified"].(bool)
+		/** 
+			Using the database as the source of truth instead of adding auth to the claims
+			this is to avoid update mismatch btwn JWT & DB
+		**/
 
-		// enforce TOTP if 2FA enabled
-		if enabled2FA && !totpVerified && !strings.HasSuffix(c.FullPath(), "/verify-totp") {
-            c.JSON(http.StatusForbidden, gin.H{"error": "Cannot access this path. 2FA is enabled, please verify TOTP."})
-            c.Abort()
-            return
+		// get user from DB
+		user, err := userService.GetUserByID(userID)
+		if err != nil || user == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			return
+		}	
+
+		// enforce SMS if 2FA enabled
+		if user.Enabled2FA && !user.IsSmsVerified && !strings.HasSuffix(c.FullPath(), "/verify-sms") && !strings.HasSuffix(c.FullPath(), "/request-sms") {
+			c.JSON(http.StatusForbidden, gin.H{"error": "Cannot access this path. 2FA is enabled, please verify SMS code."})
+			c.Abort()
+			return
 		}
 
 		// set the user_id from services/user.go, in the context so that it can be accessed in the handler

@@ -1,9 +1,11 @@
 package routes
 
 import (
-	"taskapi/dao"
 	"taskapi/controllers"
+	"taskapi/dao"
 	"taskapi/middleware"
+	"taskapi/services"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -11,9 +13,9 @@ type Routes struct {
 	TaskController *controllers.TaskController
 }
 
-func RegisterRoutes(router *gin.Engine, taskController *controllers.TaskController, taskDAO *dao.TaskDAO, taskPermissionDAO *dao.TaskPermissionDAO) {
+func RegisterRoutes(router *gin.Engine, taskController *controllers.TaskController, taskDAO *dao.TaskDAO, taskPermissionDAO *dao.TaskPermissionDAO, userService *services.UserService) {
 	taskRoutes := router.Group("/api/tasks")
-	taskRoutes.Use(middleware.JWTAuthMiddleware())
+	taskRoutes.Use(middleware.JWTAuthMiddleware(userService))
 	{
 		taskRoutes.POST("/", taskController.CreateTask)
 		taskRoutes.GET("/", taskController.GetTasks)

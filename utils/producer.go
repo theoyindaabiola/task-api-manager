@@ -9,8 +9,8 @@ import (
 
 // understand that we are replacing the server with the rabbitmq to help send the 
 // verification messaage to the users at the point of registration.
-type EmailTask struct {
-    Email         	string  `json:"email"`
+type MessageTask struct {
+    Recipient       string  `json:"recipient"` // email/phone number
     Code          	string  `json:"code"`
     Type          	string	`json:"type"`
     TaskID        	string	`json:"task_id"`
@@ -19,9 +19,9 @@ type EmailTask struct {
     TaskTitle     	string  `json:"task_title"`
 }
 
-func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmail, taskTitle string) error {
-	task := EmailTask{
-		Email:          email,
+func PublishMessage (queue, recipient, code, messageType, delegateeID, delegateeEmail, taskTitle string) error {
+	task := MessageTask{
+		Recipient:      recipient, // Phone number for sms_otp, email otherwise
         Code:           code,
         Type:           messageType,
         TaskID:         code,
@@ -45,16 +45,14 @@ func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmai
 	// if anything pannicks, close the connection
 	defer conn.Close()
 
-	// now connect to a channel/routes
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Printf("Failed to open channel: %v", err)
-		return err
+		log.Fatalf("Failed to open a channel: %v", err)
 	}
 	defer ch.Close()
 
-	// now create a queue
-	q, err := ch.QueueDeclare(
+	// SMS OTP queue     
+	_, err = ch.QueueDeclare(
 		queue,
 		true,
 		false,
@@ -63,14 +61,13 @@ func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmai
 		nil,
 	)
 	if err != nil {
-		log.Printf("Failed to declare a queue: %v", err)
-		return err
+		log.Fatalf("Failed to declare queue %s: %v", os.Getenv("SMS_OTP_QUEUE"), err)
 	}
 
 	// if all works well, then publish the message
 	err = ch.Publish(
 		"",
-		q.Name,
+		queue,
 		false,
 		false,
 		amqp.Publishing{
@@ -82,6 +79,6 @@ func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmai
 		log.Printf("Failed to publish a message: %v", err)
 		return err
 	}
-	log.Printf("Published %s task to %s for %s", messageType, queue, email)
+	log.Printf("Published %s task to %s for %s", messageType, queue, recipient)
 	return nil
 }
