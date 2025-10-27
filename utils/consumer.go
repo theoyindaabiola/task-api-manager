@@ -1,15 +1,19 @@
 package utils
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
-	"github.com/vonage/vonage-go-sdk"
+
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 func ProcessQueueMessages(queueName string) error {
+	log.Printf("Consumer started for queue: %s", queueName)
 	// connect to the rabbitmq server: consumer goes straight for pick up
 	conn, err := amqp.Dial(os.Getenv("RABBITMQ_SERVER"))
 	if err != nil {
@@ -26,20 +30,17 @@ func ProcessQueueMessages(queueName string) error {
 	}
 	defer ch.Close()
 
-	// redeclare the quueue here ?? testing 
-	// now create a queue
-	// q, err := ch.QueueDeclare (
-	// 	queueName,
-	// 	true,
-	// 	false,
-	// 	false,
-	// 	false,
-	// 	nil,
-	// )
-	// if err != nil {
-	// 	log.Printf("Failed to declare a queue: %v", err)
-	// 	return err
-	// }
+	_, err = ch.QueueDeclare(
+		os.Getenv("SMS_OTP_QUEUE"),
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		log.Fatalf("Failed to declare queue: %v", err)
+	}
 
 	// now comsume/pick up the message from the queue
 	messages, err := ch.Consume(
@@ -103,19 +104,43 @@ func ProcessQueueMessages(queueName string) error {
 	return nil
 }
 
+// SendSMSOTP sends OTP via Termii
 func SendSMSOTP(phoneNumber, otp string) error {
-    apiKey := os.Getenv("VONAGE_API_KEY")
-    apiSecret := os.Getenv("VONAGE_API_SECRET")
-    auth := vonage.CreateAuthFromKeySecret(apiKey, apiSecret)
-    smsClient := vonage.NewSMSClient(auth)
-    message := fmt.Sprintf("Your TaskAPI verification code is: %s", otp)
-    response, errResp, err := smsClient.Send(phoneNumber, phoneNumber, message, vonage.SMSOpts{})
-    if err != nil {
-        return err
-    }
-    if response.Messages[0].Status != "0" {
-        return fmt.Errorf("SMS failed: %s", errResp.Messages[0].ErrorText)
-    }
-	log.Printf("Sent SMS OTP to %s", phoneNumber)
-    return nil
+	apiKey := os.Getenv("TERMII_API_KEY")
+	senderID := os.Getenv("TERMII_SENDER_ID")
+	baseURL := os.Getenv("TERMII_BASE_URL")
+
+	if apiKey == "" || senderID == "" || baseURL == "" {
+		return fmt.Errorf("missing Termii configuration")
+	}
+
+	message := fmt.Sprintf("Your TaskAPI verification code is: %s", otp)
+
+	payload := map[string]interface{}{
+		"to":      phoneNumber,
+		"from":    senderID,
+		"sms":     message,
+		"type":    "plain",
+		"channel": "generic",
+		"api_key": apiKey,
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return fmt.Errorf("failed to marshal Termii payload: %v", err)
+	}
+
+	resp, err := http.Post(baseURL, "application/json", bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("failed to send Termii request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
+		log.Printf("Sent SMS OTP to %s via Termii", phoneNumber)
+		return nil
+	}
+
+	return fmt.Errorf("termii API error: %s", string(respBody))
 }
