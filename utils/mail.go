@@ -19,6 +19,8 @@ func SendMail(email string, body, messageType string) error {
         	subject = "Password Reset"
     	case "delegation":
 			subject = "Task Delegated"
+		case "otp":
+			subject = "2F Authentication"
 	}
 
 	// create an instance of gomail
@@ -33,6 +35,7 @@ func SendMail(email string, body, messageType string) error {
 		port = 2525 // fallback
 	}
 
+	// dialer is Elastic Email
 	dialer := gomail.NewDialer(
 		os.Getenv("SMTP_HOST"), 
 		port,
