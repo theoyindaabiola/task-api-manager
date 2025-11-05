@@ -185,15 +185,16 @@ func (s *UserService) RequestOTP(email string) (*models.OtpVerification, error) 
 	// send the otp via user's email
 	if err := utils.PublishMessage(
 		os.Getenv("EMAIL_OTP_QUEUE"),
-		otp.UserID.String(),
-		generateOtp,
-		"",
-		"", 
 		user.Email,
+		generateOtp,
+		"otp",
+		"",
+		"",
 		"",
 	); err != nil {
-		return otp, fmt.Errorf("OTP saved but not sent: %w", err)
+    	return otp, fmt.Errorf("OTP saved but not sent: %w", err)
 	}
+
 	return otp, nil
 }
 
