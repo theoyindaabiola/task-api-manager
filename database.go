@@ -34,7 +34,12 @@ func ConnectDB() *gorm.DB {
 		log.Fatal("failed to connect to database: %w", err)
 	}
 
-	err = db.AutoMigrate(&models.Task{}, &models.User{}, &models.TaskDelegation{})
+	err = db.AutoMigrate(
+		&models.Task{}, 
+		&models.User{}, 
+		&models.TaskDelegation{}, 
+		&models.OtpVerification{},
+	)
 	if err != nil {
 		log.Fatal("Failed to run Migration", err)
 	}
