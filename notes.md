@@ -39,7 +39,7 @@ TaskID: d3b7fbff-b87e-40bf-b0e8-5586f298de70
 # TASKOWNER
 {
     "username": "Oyindamola",
-    "email": "aodasola95@gmail.com",
+    "email": "oyindamola.d.abiola@gmail.com",
     "password": "OyindaToTheWorld"
 }
 verify
