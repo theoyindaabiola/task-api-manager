@@ -63,9 +63,9 @@ func EmailConsumer(queueName string) error {
 		for msg := range messages {
 			var task EmailTask
 			if err := json.Unmarshal(msg.Body, &task); err != nil {
-                log.Printf("Failed to unmarshal task from %s: %v", queueName, err)
-                continue
-            }
+				log.Printf("Failed to unmarshal task from %s: %v", queueName, err)
+				continue
+			}
 			var url, body string
 			switch task.Type {
 				case "verification":
@@ -77,15 +77,17 @@ func EmailConsumer(queueName string) error {
 				case "delegation":
 					url = fmt.Sprintf("http://localhost:8080/api/tasks/%s", task.TaskID)
 					body = fmt.Sprintf("Task '%s' has been delegated to you. View details: %s", task.TaskTitle, url)
+				case "otp":
+					body = fmt.Sprintf("Your One-Time Password (OTP) is: %s\n\nIt expires in 5 minutes.", task.Code)
 				default:
 					log.Printf("Unknown task type %s from %s", task.Type, queueName)
 				continue
 			}
-
+			// send the email
 			if err := SendMail(task.Email, body, task.Type); err != nil {
-                log.Printf("Failed to send %s email to %s: %v", task.Type, task.Email, err)
-                continue
-            }
+				log.Printf("Failed to send %s email to %s: %v", task.Type, task.Email, err)
+				continue
+			}
 			log.Printf("Sent %s email to %s", task.Type, task.Email)
 		}
 	}()
