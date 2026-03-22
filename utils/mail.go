@@ -2,10 +2,12 @@ package utils
 
 import (
 	"crypto/rand"
-	"strconv"
 	"encoding/hex"
+	"fmt"
 	"log"
+	"math/big"
 	"os"
+	"strconv"
 
 	"gopkg.in/gomail.v2"
 )
@@ -17,6 +19,8 @@ func SendMail(email string, body, messageType string) error {
         	subject = "Password Reset"
     	case "delegation":
 			subject = "Task Delegated"
+		case "otp":
+			subject = "2F Authentication"
 	}
 
 	// create an instance of gomail
@@ -31,6 +35,7 @@ func SendMail(email string, body, messageType string) error {
 		port = 2525 // fallback
 	}
 
+	// dialer is Elastic Email
 	dialer := gomail.NewDialer(
 		os.Getenv("SMTP_HOST"), 
 		port,
@@ -53,4 +58,14 @@ func GenerateVerificationCode() string {
 		log.Fatal("Failed to generate verification code: ", err)
 	}
 	return hex.EncodeToString(bytes)
+}
+
+// generate 2fa OTP
+func Generate2FACode() string {
+	// random 6 digit code 0 - 999999
+	num, err := rand.Int(rand.Reader, big.NewInt(1000000))
+	if err != nil {
+		log.Fatal("Failed to generate OTP code: ", err)
+	}
+	return fmt.Sprintf("%06d", num.Int64())
 }

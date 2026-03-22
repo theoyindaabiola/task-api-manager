@@ -14,8 +14,11 @@ type User struct {
 	Password			string 			`gorm:"not null" json:"-"`
 	Email				string 			`gorm:"unique;not null" json:"email"`
 	Verified			bool   			`gorm:"default:false" json:"verified"`
+	Enabled2FA			bool			`gorm:"default:false" json:"enabled-2fa"`
+	IsOtpVerified		bool			`gorm:"default:false" json:"is-otp-verified"`
 	VerificationToken 	*string 		`gorm:"unique" json:"-"`
 	ResetToken			*string			`gorm:"unique" json:"-"`
+	OtpCode				*string			`gorm:"unique" json:"_"`
 	ResetTokenExpiresAt *time.Time      `gorm:"default:null" json:"-"`
 	CreatedAt			time.Time 		`json:"created_at"`
 	UpdatedAt   		time.Time 		`json:"updated_at"`
