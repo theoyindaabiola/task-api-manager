@@ -121,53 +121,14 @@ func (tc *UserController) ResetPassword(c *gin.Context) {
     c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset"})
 }
 
-func (tc *UserController) Toggle2FA(c *gin.Context) {
-	// get userID from claims (middleware set it), not URL param
-	userIDVal, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-		return
-	}
-
-	userID := userIDVal.(string)
-
-	var payload dto.Toggle2FARequest
-	if err := c.ShouldBindJSON(&payload); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-        return
-	}
-
-	// call service to update DB & return a fresh JWT
-	token2fa, err := tc.UserService.Toggle2FA(userID, payload.Enabled)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	// for string response
-	status := "disabled"
-	if payload.Enabled{
-		status = "enabled"
-	}
-
-	response := dto.Toggle2FAResponse {
-		UserID: userID,
-		Enabled2FA: payload.Enabled,
-		Message: "2FA successfully " + status,
-		Token: token2fa,
-	}
-
-	c.JSON(http.StatusOK, response)
-}
-
-func (tc *UserController) RequestOTP(c *gin.Context) {
+func (tc *UserController) EnableEmail2FA(c *gin.Context) {
 	var payload dto.RequestOtpDTO
 	if err := c.ShouldBindJSON(&payload); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
         return
 	}
 
-	_, err := tc.UserService.RequestOTP(payload.Email)
+	_, err := tc.UserService.EnableEmail2FA(payload.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -176,8 +137,8 @@ func (tc *UserController) RequestOTP(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"message": "OTP request successful. Please check your email"})
 }
 
-func (tc *UserController) VerifyOTP(c *gin.Context) {
-	userID := c.Param("id") // take userId from URL
+func (tc *UserController) VerifyEmailOTP(c *gin.Context) {
+	userID := c.GetString("user_id") // take userId from JWT
 
 	var payload dto.VerifyOtpDTO
 	if err := c.ShouldBindJSON(&payload); err != nil {
@@ -185,7 +146,7 @@ func (tc *UserController) VerifyOTP(c *gin.Context) {
         return
 	}
 
-	token, err := tc.UserService.VerifyOTP(userID, payload.OTP)
+	token, err := tc.UserService.VerifyEmailOTP(userID, payload.OTP)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -196,3 +157,19 @@ func (tc *UserController) VerifyOTP(c *gin.Context) {
 		"token":   token,
 	})
 }
+
+func (tc *UserController) DisableEmail2FA(c *gin.Context) {
+	var payload dto.RequestOtpDTO
+	if err := c.ShouldBindJSON(&payload); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+        return
+	}
+
+		_, err := tc.UserService.DisableEmail2FA(payload.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "Email2FA successfully disabled"})
+} 

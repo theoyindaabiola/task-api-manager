@@ -7,7 +7,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// understand that we are replacing the server with the rabbitmq to help send the 
+// understand that we are replacing the server with the rabbitmq to help send the
 // verification messaage to the users at the point of registration.
 type EmailTask struct {
     Email         	string  `json:"email"`
@@ -35,9 +35,10 @@ func PublishMessage (queue, email, code, messageType, delegateeID, delegateeEmai
 		log.Printf("Failed to marshal message: %v", err)
         return err
     }
-
+	url := os.Getenv("RABBITMQ_URL")
+	log.Println("Producer RabbitMQ URL:", url)
 	// connect to the rabbitmq server
-	conn, err := amqp.Dial(os.Getenv("RABBITMQ_SERVER"))
+	conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
 	if err != nil {
 		log.Println("Failed to connect to RabbitMQ:", err)
 		return err

@@ -11,7 +11,9 @@ import (
 
 func EmailConsumer(queueName string) error {
 	// connect to the rabbitmq server: consumer goes straight for pick up
-	conn, err := amqp.Dial(os.Getenv("RABBITMQ_SERVER"))
+	url := os.Getenv("RABBITMQ_URL")
+	log.Println("Consumer RabbitMQ URL:", url)
+	conn, err := amqp.Dial(os.Getenv("RABBITMQ_URL"))
 	if err != nil {
 		log.Println("Failed to connect to RabbiteMQ", err)
 		return err

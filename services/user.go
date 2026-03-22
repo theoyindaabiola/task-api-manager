@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"taskapi/dao" // needs to interact with it
-	// "taskapi/middleware"
 	"taskapi/models" // needs the model for the db
 	"taskapi/utils"
 
@@ -36,6 +35,7 @@ func (s *UserService) RegisterUser(user *models.User) error {
 	user.Password = string(hash)
 	verificationCode := utils.GenerateVerificationCode()
 	user.VerificationToken = &verificationCode
+	user.Enabled2FA = false
 	user.ResetToken = nil
 	if err := s.UserDAO.CreateUserDB(user); err != nil {
 		return err
@@ -65,7 +65,7 @@ func (s *UserService) VerificationService(verificationToken string) error {
 	user.Verified = true
 	// clear after use
 	user.VerificationToken = nil
-	if err := s.UserDAO.DB.Save(user).Error; err != nil {
+	if err := s.UserDAO.Update(user); err != nil {
 		return err
 	}
 	return nil
@@ -87,7 +87,18 @@ func (s *UserService) LoginUser(payload *models.User) (string, error) {
 		return "", errors.New("invalid credentials")
 	}
 
-	return GenerateJWTToken(user, false)
+	otpVerified := false
+	// otp should be true for user login, either verified or not
+	if user.Enabled2FA {
+		// last OTP record to confirm if verified
+		latestOtp, err := s.UserDAO.GetLatestOTPByUser(user.ID.String())
+		if err == nil && latestOtp.OtpVerified {
+			otpVerified = true
+		}
+	} else {
+    	otpVerified = true // no 2FA, no restriction
+	}
+    return GenerateJWTToken(user, otpVerified)
 }
 
 func (s *UserService) ForgotPasswordService(email string) error {
@@ -138,43 +149,25 @@ func (s *UserService) GetUserByID(id string) (*models.User, error) {
     return user, nil
 }
 
-// update user
-func (s *UserService) Toggle2FA(userID string, enabled bool) (string, error) {
-	// get the user first
-	user, err := s.UserDAO.GetUserByIdDB(userID)
-	if err != nil {
-		return "", err
-	}
-
-	// update the 2fa according to user's request
-	user.Enabled2FA = enabled
-
-	// update the user
-	err = s.UserDAO.Update(user)
-	if err != nil {
-		return "", err
-	}
-
-	return GenerateJWTToken(user, false)
-}
-
-func (s *UserService) RequestOTP(email string) (*models.OtpVerification, error) {
+func (s *UserService) EnableEmail2FA(email string) (*models.OtpVerification, error) {
 	// get user by email
 	user, err := s.UserDAO.GetUserByEmail(email)
     if err != nil {
         return nil, err
     }
 
+	_ = s.UserDAO.InvalidateOldOTPs(user.ID.String())
+
 	// generate otp code and expiring time
-	generateOtp := utils.Generate2FACode()
+	otpCode := utils.Generate2FACode()
 	expireAt := time.Now().Add(5 * time.Minute)
 
 	// set up the user&otp model
 	otp := &models.OtpVerification{
 		UserID:    user.ID,
-		OtpCode:   generateOtp,
+		OtpCode:   otpCode,
 		ExpiresAt: expireAt,
-		Verified:  false, // always false at new otp creation
+		OtpVerified:  false, // always false at new otp creation
 	}
 
 	// store the otp in the database
@@ -186,7 +179,7 @@ func (s *UserService) RequestOTP(email string) (*models.OtpVerification, error) 
 	if err := utils.PublishMessage(
 		os.Getenv("EMAIL_OTP_QUEUE"),
 		user.Email,
-		generateOtp,
+		otpCode,
 		"otp",
 		"",
 		"",
@@ -198,7 +191,7 @@ func (s *UserService) RequestOTP(email string) (*models.OtpVerification, error) 
 	return otp, nil
 }
 
-func (s *UserService) VerifyOTP(userID, code string) (string, error) {
+func (s *UserService) VerifyEmailOTP(userID, code string) (string, error) {
 	// check DB for the otp code
 	otp, err := s.UserDAO.GetOTPByCodeAndUser(userID, code)
 	if err != nil {
@@ -211,12 +204,12 @@ func (s *UserService) VerifyOTP(userID, code string) (string, error) {
 	}
 
 	// check if already used
-	if otp.Verified {
+	if otp.OtpVerified {
 		return "", fmt.Errorf("OTP already used")
 	}
 
 	// mark OTP as verified
-	otp.Verified = true
+	otp.OtpVerified = true
 	if err := s.UserDAO.DB.Save(otp).Error; err != nil {
 		return "", err
 	}
@@ -240,6 +233,28 @@ func (s *UserService) VerifyOTP(userID, code string) (string, error) {
 
 	return signedToken, nil
 
+}
+
+func (s *UserService) DisableEmail2FA(email string) (*models.User, error) {
+    // get user by email
+    user, err := s.UserDAO.GetUserByEmail(email)
+    if err != nil {
+        return nil, err
+    }
+
+    // disable flags
+    user.Enabled2FA = false
+    user.IsOtpVerified = false
+
+    // update user
+    if err := s.UserDAO.Update(user); err != nil {
+        return nil, err
+    }
+
+    // invalidate old OTPs
+    _ = s.UserDAO.InvalidateOldOTPs(user.ID.String())
+
+    return user, nil
 }
 
 func GenerateJWTToken(user *models.User, otpVerified bool) (string, error) {

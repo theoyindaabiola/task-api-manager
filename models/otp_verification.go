@@ -12,7 +12,7 @@ type OtpVerification struct {
 	UserID		uuid.UUID 		`gorm:"primarykey" json:"user_id"`
 	OtpCode		string 			`gorm:"not null" json:"-"` // multi-users can have same otp, so not unique
 	ExpiresAt	time.Time 		`json:"expired_at"`
-	Verified	bool			`gorm:"default:false" json:"verified"`
+	OtpVerified	bool			`gorm:"default:false" json:"verified"`
 	CreatedAt	time.Time 		`json:"created_at"`
 }
 
