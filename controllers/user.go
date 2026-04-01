@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http" // allows hhtp requests
 	"taskapi/dto"
 	"taskapi/models"
@@ -139,6 +140,7 @@ func (tc *UserController) EnableEmail2FA(c *gin.Context) {
 
 func (tc *UserController) VerifyEmailOTP(c *gin.Context) {
 	userID := c.GetString("user_id") // take userId from JWT
+	log.Println("UserID:", userID)
 
 	var payload dto.VerifyOtpDTO
 	if err := c.ShouldBindJSON(&payload); err != nil {

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"taskapi/services"
@@ -74,6 +75,8 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 
 		// set the user_id from services/user.go, in the context so that it can be accessed in the handler
 		c.Set("user_id", userID)
+		log.Println("Middleware userID:", userID)
+
 		c.Next() // continue to the next request
 	}
 }
