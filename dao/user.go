@@ -2,6 +2,7 @@ package dao
 
 import (
 	"taskapi/models"
+
 	"gorm.io/gorm"
 )
 
@@ -16,11 +17,11 @@ func NewUserDAO(db *gorm.DB) *UserDAO {
 	return &UserDAO{DB: db}
 }
 
-/** 
-	to create user: pointer function: these functions are created 
+/**
+	to create user: pointer function: these functions are created
 	under the dao package of UserDAOclass, and the parameter is called dao
 	These are methods under UserDAOclass e.g: UserDAO.CreateUserDB
-	a pointer to the models is needed to connect db with the model structure, 
+	a pointer to the models is needed to connect db with the model structure,
 	because they are now on different packages
 **/
 
@@ -42,19 +43,19 @@ func (dao *UserDAO) GetUsersDB() ([]models.User, error) {
 }
 
 func (dao *UserDAO) GetUserByEmail(email string) (*models.User, error) {
-    var user models.User
-    if err := dao.DB.Where("email = ?", email).First(&user).Error; err != nil {
-        return nil, err
-    }
-    return &user, nil
+	var user models.User
+	if err := dao.DB.Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (dao *UserDAO) GetUserByIdDB(userID string) (*models.User, error) {
-    var user models.User
-    if err := dao.DB.Where("id = ?", userID).First(&user).Error; err != nil {
-        return nil, err
-    }
-    return &user, nil
+	var user models.User
+	if err := dao.DB.Where("id = ?", userID).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 func (dao *UserDAO) GetUserDB(username string) (*models.User, error) {
@@ -85,5 +86,33 @@ func (dao *UserDAO) GetUserResetToken(ResetToken string) (*models.User, error) {
 }
 
 func (dao *UserDAO) Update(user *models.User) error {
-    return dao.DB.Save(user).Error
+	return dao.DB.Save(user).Error
+}
+
+func (dao *UserDAO) CreateOTP(otp *models.OtpVerification) error {
+	return dao.DB.Create(otp).Error // to save otp only
+}
+
+func (dao *UserDAO) GetOTPByCodeAndUser(userID, code string) (*models.OtpVerification, error) {
+	var otp models.OtpVerification
+	if err := dao.DB.Where("user_id = ? AND otp_code = ?", userID, code).First(&otp).Error; err != nil {
+		return nil, err
+	}
+	return &otp, nil
+}
+
+func (dao *UserDAO) GetLatestOTPByUser(userID string) (*models.OtpVerification, error) {
+	var otp models.OtpVerification
+	if err := dao.DB.Where("user_id = ?", userID).Order("created_at DESC").First(&otp).Error; err != nil {
+		return nil, err
+	}
+	return &otp, nil
+}
+
+func (dao *UserDAO) InvalidateOldOTPs(userID string) error {
+	return dao.DB.Model(&models.OtpVerification{}).Where("user_id = ? AND otp_verified = ?", userID, false).Update("otp_verified", true).Error
+}
+
+func (dao *UserDAO) Update2FA(userID string, enabled bool) error {
+	return dao.DB.Model(&models.User{}).Where("id = ?", userID).Update("enabled_2fa", enabled).Error
 }

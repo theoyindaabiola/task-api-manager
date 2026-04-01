@@ -23,3 +23,17 @@ type ResetPasswordDTO struct {
 type VerifyTOTPDTO struct {
 	Code 			string `json:"code" binding:"required"`
 }
+
+type RequestOtpDTO struct {
+	Email 			string `json:"email" binding:"required"`
+}
+
+type VerifyOtpDTO struct {
+	OTP				string `json:"otp" binding:"required"`
+}
+
+type UserResponseDTO struct {
+	EmailOtpVerified	bool `json:"email_otp_verified"`
+	TOTPVerified		bool `json:"totp_verified"`
+}
+

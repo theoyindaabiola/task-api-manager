@@ -31,6 +31,12 @@ func main() {
 	go utils.EmailConsumer((os.Getenv("TASK_DELEGATION_QUEUE")))
 	go utils.EmailConsumer((os.Getenv("EMAIL_OTP_QUEUE"))) // ????
 
+	log.Println("Verification queue:", os.Getenv("EMAIL_VERIFICATION_QUEUE"))
+	log.Println("Reset queue:", os.Getenv("EMAIL_RESET_QUEUE"))
+	log.Println("Delegation queue:", os.Getenv("TASK_DELEGATION_QUEUE"))
+	log.Println("OTP queue:", os.Getenv("EMAIL_OTP_QUEUE"))
+
+
 	// Initialize dao, services and controller USER
 	userDao := dao.NewUserDAO(db)
 	userService := services.NewUserService(userDao)

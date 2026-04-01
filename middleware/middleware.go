@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"taskapi/services"
@@ -39,29 +40,65 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		userID, ok := claims["user_id"].(string)
-        if !ok {
-            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
-            return
-        }
-
-		// check 2FA/TOTP claims
-		enabled2FA, ok := claims["enabled_2fa"].(bool)
 		if !ok {
-			// claim is missing
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or missing 2FA claim"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
 			return
 		}
-		totpVerified, _ := claims["is_totp_verified"].(bool)
 
-		// enforce TOTP if 2FA enabled
-		if enabled2FA && !totpVerified && !strings.HasSuffix(c.FullPath(), "/verify-totp") {
-            c.JSON(http.StatusForbidden, gin.H{"error": "Cannot access this path. 2FA is enabled, please verify TOTP."})
-            c.Abort()
-            return
+		// 2FA properties checks
+		enabled2FA, _ := claims["enabled_2fa"].(bool)
+		totpVerified, _ := claims["is_totp_verified"].(bool)
+		otpVerified, _ := claims["is_otp_verified"].(bool)
+
+		// allowed path/routes
+		path := c.FullPath() // canonical route pattern
+		otpAllowed := []string{"/enable-2fa", "/verify-otp"}
+		totpAllowed := []string{"/enable-2fa", "/verify-otp"}
+
+		// If 2FA is enabled but OTP is not yet verified,
+		// restrict access to all routes except those explicitly allowed.
+		if enabled2FA && !otpVerified {
+			allowedRoute := false
+			for _, route := range otpAllowed {
+				if strings.Contains(path, route) {
+					allowedRoute = true
+					break
+				}
+			}
+
+			// if route is not allowed, block access
+			if !allowedRoute {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error": "Email 2FA required. Please verify OTP.",
+				})
+				return
+			}
+		}
+
+		// If 2FA is enabled but TOTP is not yet verified,
+		// restrict access to all routes except those explicitly allowed.
+		if enabled2FA && !totpVerified {
+			allowedRoute := false
+			for _, route := range totpAllowed {
+				if strings.Contains(path, route) {
+					allowedRoute = true
+					break
+				}
+			}
+
+			// if route is not allowed, block access
+			if !allowedRoute {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error": "TOTP required. Please verify your authenticator code.",
+				})
+				return
+			}
 		}
 
 		// set the user_id from services/user.go, in the context so that it can be accessed in the handler
 		c.Set("user_id", userID)
+		log.Println("Middleware userID:", userID)
+
 		c.Next() // continue to the next request
 	}
 }
