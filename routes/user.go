@@ -14,8 +14,7 @@ type UserRoutes struct {
 func RegisterUserRoutes(router *gin.Engine, userController *controllers.UserController) {
 	public := router.Group("/api/users")
 	{
-		// 2FA routes allowed in middleware
-
+		// public auth routes
 		public.POST("/register", userController.CreateUser)
 		public.GET("/verify-email", userController.VerifyEmail)
 		public.POST("/login", userController.LoginUser)
@@ -23,16 +22,19 @@ func RegisterUserRoutes(router *gin.Engine, userController *controllers.UserCont
 		public.POST("/reset-password", userController.ResetPassword)
 	}
 
-	// require JWT
+	// protected routes - require JWT
 	protected := router.Group("/api/users")
 	protected.Use(middleware.JWTAuthMiddleware())
 	{
+		// email-based 2FA routes
 		protected.POST("/enable-email-2fa", userController.EnableEmail2FA)
 		protected.POST("/verify-email-2fa", userController.VerifyEmailOTP)
-		protected.POST("/disable-email-2fa", userController.DisableEmail2FA)
-		// TOTP
+
+		// totp-based 2FA routes
 		protected.POST("/enable-totp", userController.EnableTOTP)
 		protected.POST("/verify-totp", userController.VerifyTOTP)
-		protected.POST("/disable-totp", userController.DisableTOTP)
+
+		// disable 2FA
+		protected.POST("/disable-2fa", userController.Disable2FA)
 	}
 }
