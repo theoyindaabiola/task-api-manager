@@ -2,7 +2,7 @@ package controllers
 
 import (
 	"log"
-	"net/http" // allows hhtp requests
+	"net/http" // allows http requests
 	"taskapi/dto"
 	"taskapi/models"
 	"taskapi/services"
@@ -50,14 +50,14 @@ func (tc *UserController) CreateUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, "User successfully created, kindly verify your email address")
+	c.JSON(http.StatusCreated, gin.H{"message": "User successfully created, kindly verify your email address"})
 }
 
 func (tc *UserController) VerifyEmail(c *gin.Context) { 
 	verificationToken := c.Query("code")
 
 	if err := tc.UserService.VerificationService(verificationToken); err != nil {
-		c.JSON(400, gin.H{"error": "Invalid verification token"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid verification token"})
 		return
 	}
 
@@ -85,21 +85,20 @@ func (tc *UserController) LoginUser(c *gin.Context) {
 	// creates the database and return error in JSON format
 	// tc.UserService connects to the services and call the LoginUser()
 	token, err := tc.UserService.LoginUser(&user)
-	
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"message": "User successfully logged in", "token": token})
+	c.JSON(http.StatusOK, gin.H{"message": "User successfully logged in", "token": token})
 }
 
 func (tc *UserController) ForgotPassword(c *gin.Context) {
 	var payload dto.ForgotPasswordDTO
 	if err := c.ShouldBindJSON(&payload); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-        return
-    }
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
 
 	if err := tc.UserService.ForgotPasswordService(payload.Email); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to process request"})
@@ -110,17 +109,21 @@ func (tc *UserController) ForgotPassword(c *gin.Context) {
 }
 
 func (tc *UserController) ResetPassword(c *gin.Context) {
-    var payload dto.ResetPasswordDTO
-    if err := c.ShouldBindJSON(&payload); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-        return
-    }
-    if err := tc.UserService.ResetPasswordService(payload.Token, payload.Password); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
-        return
-    }
-    c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset"})
+	var payload dto.ResetPasswordDTO
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	if err := tc.UserService.ResetPasswordService(payload.Token, payload.Password); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired token"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Password successfully reset"})
 }
+
+// 2FA / TOTP Routes
 
 func (tc *UserController) EnableTOTP(c *gin.Context) {
 	// get userID from claims
@@ -141,7 +144,7 @@ func (tc *UserController) EnableTOTP(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"qr_code_url": qrCodeURL,
-		"message": "TOTP has been enabled. Scan the QR code in your authenticator app, then log in again and enter the 6-digit code to complete setup.",
+		"message": "TOTP enabled. Scan the QR code in your authenticator app, and complete login with 6-digit code.",
 	})	
 }
 
@@ -171,7 +174,7 @@ func (tc *UserController) VerifyEmailOTP(c *gin.Context) {
         return
 	}
 
-	token, err := tc.UserService.VerifyEmailOTP(userID, payload.OTP)
+	token, err := tc.UserService.VerifyEmailOTP(userID, payload.Code)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -179,7 +182,7 @@ func (tc *UserController) VerifyEmailOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Email OTP successfully verified",
 		"token": token,
-	})	
+	})
 }
 
 func (tc *UserController) VerifyTOTP(c *gin.Context) {
@@ -210,7 +213,7 @@ func (tc *UserController) VerifyTOTP(c *gin.Context) {
 	})
 }
 
-func (tc *UserController) DisableTOTP(c *gin.Context) {
+func (tc *UserController) Disable2FA(c *gin.Context) {
 	// get userID from claims
     userIDVal, exists := c.Get("user_id")
     if !exists {
@@ -219,30 +222,14 @@ func (tc *UserController) DisableTOTP(c *gin.Context) {
     }
     userID := userIDVal.(string)
 
-    token, err := tc.UserService.DisableTOTP(userID)
+    token, err := tc.UserService.Disable2FA(userID)
     if err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
 
     c.JSON(http.StatusOK, gin.H{
-		"message": "2FA has been disabled successfully, update header with the new token",
+		"message": "2FA has been disabled successfully, update header with new token",
 		"token": token,
 	})
 }
-
-func (tc *UserController) DisableEmail2FA(c *gin.Context) {
-	var payload dto.RequestOtpDTO
-	if err := c.ShouldBindJSON(&payload); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-        return
-	}
-
-		_, err := tc.UserService.DisableEmail2FA(payload.Email)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{"message": "Email2FA successfully disabled"})
-} 
