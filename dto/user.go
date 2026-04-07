@@ -2,7 +2,7 @@ package dto
 
 type RegisterUserDTO struct {
 	Username 		string `json:"username" binding:"required"`
-	Email 			string `json:"email" binding:"required"`
+	Email 			string `json:"email" binding:"required,email"`
 	Password		string `json:"password" binding:"required"`
 }
 
@@ -12,7 +12,7 @@ type LoginUserDTO struct {
 }
 
 type ForgotPasswordDTO struct {
-	Email 			string `json:"email" binding:"required"`
+	Email 			string `json:"email" binding:"required,email"`
 }
 
 type ResetPasswordDTO struct {
@@ -20,14 +20,21 @@ type ResetPasswordDTO struct {
 	Password		string `json:"password" binding:"required"`
 }
 
+type VerifyTOTPDTO struct {
+	Code 			string `json:"code" binding:"required"`
+}
+
 type RequestOtpDTO struct {
-	Email 			string `json:"email" binding:"required"`
+	Email 			string `json:"email" binding:"required,email"`
 }
 
 type VerifyOtpDTO struct {
-	OTP				string `json:"otp" binding:"required"`
+	Code				string `json:"code" binding:"required"`
 }
 
 type UserResponseDTO struct {
-	IsOtpVerified	bool `json:"is_otp_verified"`
+	EmailOtpVerified	bool `json:"email_otp_verified"`
+	TOTPVerified		bool `json:"totp_verified"`
+	TwoFactorType    	string `json:"two_factor_type"`
 }
+

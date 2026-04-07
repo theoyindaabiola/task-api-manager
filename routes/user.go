@@ -2,6 +2,8 @@ package routes
 
 import (
 	"taskapi/controllers"
+	"taskapi/middleware"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -10,16 +12,29 @@ type UserRoutes struct {
 }
 
 func RegisterUserRoutes(router *gin.Engine, userController *controllers.UserController) {
-	// group the routes
-	userRoutes := router.Group("/api/users")
+	public := router.Group("/api/users")
 	{
-		userRoutes.POST("/register", userController.CreateUser)
-		userRoutes.GET("/verify-email", userController.VerifyEmail)
-		userRoutes.POST("/login", userController.LoginUser)
-		userRoutes.POST("/forgot-password", userController.ForgotPassword)
-		userRoutes.POST("/reset-password", userController.ResetPassword)
-		userRoutes.POST("/enable-otp", userController.EnableEmail2FA)
-		userRoutes.POST("/verify-otp", userController.VerifyEmailOTP)
-		userRoutes.POST("/disable-otp", userController.DisableEmail2FA)
+		// public auth routes
+		public.POST("/register", userController.CreateUser)
+		public.GET("/verify-email", userController.VerifyEmail)
+		public.POST("/login", userController.LoginUser)
+		public.POST("/forgot-password", userController.ForgotPassword)
+		public.POST("/reset-password", userController.ResetPassword)
+	}
+
+	// protected routes - require JWT
+	protected := router.Group("/api/users")
+	protected.Use(middleware.JWTAuthMiddleware())
+	{
+		// email-based 2FA routes
+		protected.POST("/enable-email-2fa", userController.EnableEmail2FA)
+		protected.POST("/verify-email-2fa", userController.VerifyEmailOTP)
+
+		// totp-based 2FA routes
+		protected.POST("/enable-totp", userController.EnableTOTP)
+		protected.POST("/verify-totp", userController.VerifyTOTP)
+
+		// disable 2FA
+		protected.POST("/disable-2fa", userController.Disable2FA)
 	}
 }

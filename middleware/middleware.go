@@ -13,7 +13,7 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// extract header from the request
 		authorizationHeader := c.GetHeader("Authorization")
-		if authorizationHeader == "" || !strings.HasPrefix(authorizationHeader, "Bearer") {
+		if authorizationHeader == "" || !strings.HasPrefix(authorizationHeader, "Bearer ") {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
 			c.Abort()
 			return
@@ -39,38 +39,55 @@ func JWTAuthMiddleware() gin.HandlerFunc {
 		}
 
 		userID, ok := claims["user_id"].(string)
-        if !ok {
-            c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
-            return
-        }
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
+			return
+		}
 
 		// 2FA properties checks
 		enabled2FA, _ := claims["enabled_2fa"].(bool)
-        otpVerified, _ := claims["is_otp_verified"].(bool)
+		isVerified, _ := claims["is_2fa_verified"].(bool)
+		twoFactorType, _ := claims["two_factor_type"].(string)
 
-		// allowed path/routes
-        allowed := []string{"/enable-2fa", "/verify-otp"}
-        path := c.FullPath() // canonical route pattern
+		if enabled2FA && !isVerified {
+			path := c.Request.URL.Path
+			var allowedRoutes []string
 
-		// If 2FA is enabled but OTP is not yet verified,
-        // restrict access to all routes except those explicitly allowed.
-        if enabled2FA && !otpVerified {
-            allowedRoute := false
-            for _, route := range allowed {
-                if strings.Contains(path, route) {
-                    allowedRoute = true
-                    break
-                }
-            }
+			switch twoFactorType {
+				case "email":
+					allowedRoutes = []string{
+						"/verify-email-2fa",
+						"/enable-email-2fa",
+						"/disable-email-2fa",
+					}
+				case "totp":
+					allowedRoutes = []string{
+						"/verify-totp",
+						"/enable-totp",
+						"/disable-totp",
+					}
+				default:
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+						"error": "Invalid 2FA configuration",
+					})
+					return
+			}
 
-			// if route is not allowed, block access
-            if !allowedRoute {
-                c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
-                    "error": "2FA required. Please verify OTP.",
-                })
-                return
-            }
-        }
+			allowed := false
+			for _, route := range allowedRoutes {
+				if path == route {
+					allowed = true
+					break
+				}
+			}
+
+			if !allowed {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{
+					"error": "2FA verification required",
+				})
+				return
+			}
+		}
 
 		// set the user_id from services/user.go, in the context so that it can be accessed in the handler
 		c.Set("user_id", userID)

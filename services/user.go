@@ -12,6 +12,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v4"
 	"golang.org/x/crypto/bcrypt"
+	"github.com/pquerna/otp/totp"
 )
 
 type UserService struct {
@@ -87,18 +88,12 @@ func (s *UserService) LoginUser(payload *models.User) (string, error) {
 		return "", errors.New("invalid credentials")
 	}
 
-	otpVerified := false
-	// otp should be true for user login, either verified or not
-	if user.Enabled2FA {
-		// last OTP record to confirm if verified
-		latestOtp, err := s.UserDAO.GetLatestOTPByUser(user.ID.String())
-		if err == nil && latestOtp.OtpVerified {
-			otpVerified = true
-		}
-	} else {
-    	otpVerified = true // no 2FA, no restriction
+	if !user.Enabled2FA {
+		// no 2fa, issue long-lived token
+		return GenerateJWTToken(user, true)
 	}
-    return GenerateJWTToken(user, otpVerified)
+
+	return GenerateJWTToken(user, false)
 }
 
 func (s *UserService) ForgotPasswordService(email string) error {
@@ -155,7 +150,7 @@ func (s *UserService) EnableEmail2FA(email string) (*models.OtpVerification, err
     if err != nil {
         return nil, err
     }
-
+	
 	_ = s.UserDAO.InvalidateOldOTPs(user.ID.String())
 
 	// generate otp code and expiring time
@@ -170,12 +165,11 @@ func (s *UserService) EnableEmail2FA(email string) (*models.OtpVerification, err
 		OtpVerified:  false, // always false at new otp creation
 	}
 
-	// store the otp in the database
-	if err := s.UserDAO.CreateOTP(otp); err != nil {
-		return nil, fmt.Errorf("failed to create OTP: %w", err)
+	if err := s.UserDAO.DB.Create(otp).Error; err != nil {
+		return nil, err
 	}
 
-	// send the otp via user's email
+	// send otp via email queue
 	if err := utils.PublishMessage(
 		os.Getenv("EMAIL_OTP_QUEUE"),
 		user.Email,
@@ -185,23 +179,27 @@ func (s *UserService) EnableEmail2FA(email string) (*models.OtpVerification, err
 		"",
 		"",
 	); err != nil {
-    	return otp, fmt.Errorf("OTP saved but not sent: %w", err)
+		return nil, err
 	}
-
 	return otp, nil
 }
 
 func (s *UserService) VerifyEmailOTP(userID, code string) (string, error) {
+	user, err := s.UserDAO.GetUserByIdDB(userID)
+    if err != nil {
+        return "", err
+    }
+
 	// check DB for the otp code
 	otp, err := s.UserDAO.GetOTPByCodeAndUser(userID, code)
 	if err != nil {
 		return "", errors.New("invalid OTP")
 	}
 
-	// check expiry
-	if time.Now().After(otp.ExpiresAt) {
-		return "", fmt.Errorf("OTP expired")
-	}
+	// check if OTP is expired
+    if otp.ExpiresAt.Before(time.Now()) {
+        return "", errors.New("OTP expired")
+    }
 
 	// check if already used
 	if otp.OtpVerified {
@@ -214,70 +212,130 @@ func (s *UserService) VerifyEmailOTP(userID, code string) (string, error) {
 		return "", err
 	}
 
-	// update 2FA flag
-	if err := s.UserDAO.Update2FA(userID, true); err != nil {
-		return "", err
-	}
-
-	// reload fresh user
-	user, err := s.UserDAO.GetUserByIdDB(userID)
-	if err != nil {
-		return "", fmt.Errorf("user not found")
-	}
+    // update user flag for Email OTP verification
+	user.Enabled2FA = true
+    user.Is2FAVerified = true
+    user.TwoFactorType = "email"
+	
+    if err := s.UserDAO.Update(user); err != nil {
+        return "", err
+    }
 
 	// generate JWT reflecting current 2FA state
-	signedToken, err := GenerateJWTToken(user, user.Enabled2FA) 
-	if err != nil { 
-		return "", err 
+	return GenerateJWTToken(user, user.Is2FAVerified)
+}
+
+// enable TOTP generates then store a new TOTP secret for the user
+func (s *UserService) EnableTOTP(userID string) (string, error) {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
+	if err != nil {
+        return "", err
+    }
+
+	// block enabling again if already active
+	if user.Enabled2FA && user.TOTPSecret != nil {
+		return "", fmt.Errorf("2FA is already enabled for this account")
+
 	}
 
-	return signedToken, nil
+	// generate secret
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer: "TaskAPI",
+		AccountName: user.Email,
+	})
+	if err != nil {
+        return "", err
+    }
 
+	// store secret in DB
+	secret := key.Secret()
+	user.TOTPSecret = &secret
+
+    if err := s.UserDAO.Update(user); err != nil {
+        return "", err
+    }
+
+    // return URL: to be turned to qr code
+    return key.URL(), nil
 }
 
-func (s *UserService) DisableEmail2FA(email string) (*models.User, error) {
-    // get user by email
-    user, err := s.UserDAO.GetUserByEmail(email)
+// VerifyTOTP to checks the provided OTP against the stored secret
+func (s *UserService) VerifyTOTP(userID, code string) (string, error) {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
     if err != nil {
-        return nil, err
+        return "", err
     }
 
-    // disable flags
-    user.Enabled2FA = false
-    user.IsOtpVerified = false
+	if user.TOTPSecret == nil {
+		return "", fmt.Errorf("TOTP is not enabled")
+	}
+	valid := totp.Validate(code, *user.TOTPSecret)
 
-    // update user
+	if !valid {
+		return "", fmt.Errorf("invalid code")
+	}
+
+	user.Enabled2FA = true
+	if err := s.UserDAO.Update(user); err != nil {
+		return "", err
+	}
+		
+	// update user flag for 2FA type
+    user.TwoFactorType = "totp"
     if err := s.UserDAO.Update(user); err != nil {
-        return nil, err
+        return "", err
     }
 
-    // invalidate old OTPs
+	return GenerateJWTToken(user, true)
+}
+
+func (s *UserService) Disable2FA(userID string) (string, error) {
+    user, err := s.UserDAO.GetUserByIdDB(userID)
+    if err != nil {
+        return "", err
+    }
+
+	// security: ensure user has already verified 2FA
+    if !user.Is2FAVerified {
+        return "", fmt.Errorf("2FA verification required before disabling")
+    }
+
+	// update the fields to disable 2fa
+	user.Enabled2FA = false
+	user.Is2FAVerified = false
+	user.TwoFactorType = ""
+	user.TOTPSecret = nil // only for TOTP
+
+	// update user
+    if err := s.UserDAO.Update(user); err != nil {
+        return "", err
+    }
+
+	 // invalidate old OTPs
     _ = s.UserDAO.InvalidateOldOTPs(user.ID.String())
 
-    return user, nil
+    // issue a fresh token without 2FA requirement
+    return GenerateJWTToken(user, true)
 }
 
-func GenerateJWTToken(user *models.User, otpVerified bool) (string, error) {
-    // set short expiry if OTP not verified yet
-    var expiry time.Duration
-    if otpVerified {
-        expiry = time.Hour * 48 // normal long session
-    } else {
-        expiry = time.Minute * 10 // short token for OTP pending
-    }
+func GenerateJWTToken(user *models.User, is2FAVerified bool) (string, error) {
+	// set short expiry if OTP not verified yet
+	expiry := time.Hour * 48
+	if !is2FAVerified {
+		expiry = time.Minute * 10
+	}
 
     claims := jwt.MapClaims{
-        "user_id":         user.ID,
-        "enabled_2fa":     user.Enabled2FA,
-        "is_otp_verified": otpVerified,
-        "exp":             time.Now().Add(expiry).Unix(),
-        "issuer":          "task-api-manager",
+        "user_id":          user.ID.String(),
+        "enabled_2fa":      user.Enabled2FA,
+        "is_2fa_verified": 	is2FAVerified,
+        "exp":              time.Now().Add(expiry).Unix(),
+		"issuer":           "task-api-manager",
     }
 
     token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
     return token.SignedString(jwtSecret)
 }
-
 
 // to decode, verify the signature, check the expiration time and extract the user details
 func ParseToken(tokenString string) (*jwt.Token, error) {

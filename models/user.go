@@ -8,17 +8,18 @@ import (
 
 // GORM
 type User struct {
-	// json is in the go application while the db i s mapped to it in the database
+	// json is in the go application while the db is mapped to it in the database
 	ID					uuid.UUID 		`gorm:"primarykey" json:"id"`
 	Username 			string 			`gorm:"unique;not null" json:"username"`
 	Password			string 			`gorm:"not null" json:"-"`
 	Email				string 			`gorm:"unique;not null" json:"email"`
 	Verified			bool   			`gorm:"default:false" json:"verified"`
-	Enabled2FA			bool			`gorm:"default:false" json:"enabled-2fa"`
-	IsOtpVerified		bool			`gorm:"default:false" json:"is-otp-verified"`
+	Enabled2FA			bool			`gorm:"default:false" json:"enabled_2fa"`
+	Is2FAVerified		bool			`gorm:"default:false" json:"is_2fa_verified"`
+	TwoFactorType 		string 			`gorm:"default:none"` // "email", "totp", "sms"
 	VerificationToken 	*string 		`gorm:"unique" json:"-"`
 	ResetToken			*string			`gorm:"unique" json:"-"`
-	OtpCode				*string			`gorm:"unique" json:"_"`
+	TOTPSecret			*string			`json:"_"` 		// store secret for authenticator apps
 	ResetTokenExpiresAt *time.Time      `gorm:"default:null" json:"-"`
 	CreatedAt			time.Time 		`json:"created_at"`
 	UpdatedAt   		time.Time 		`json:"updated_at"`
