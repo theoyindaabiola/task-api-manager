@@ -213,8 +213,10 @@ func (s *UserService) VerifyEmailOTP(userID, code string) (string, error) {
 	}
 
     // update user flag for Email OTP verification
+	user.Enabled2FA = true
     user.Is2FAVerified = true
     user.TwoFactorType = "email"
+	
     if err := s.UserDAO.Update(user); err != nil {
         return "", err
     }
@@ -317,11 +319,7 @@ func (s *UserService) Disable2FA(userID string) (string, error) {
 }
 
 func GenerateJWTToken(user *models.User, is2FAVerified bool) (string, error) {
-	if len(jwtSecret) == 0 {
-		return "", errors.New("JWT secret not configured")
-	}
-
-    // set short expiry if OTP not verified yet
+	// set short expiry if OTP not verified yet
 	expiry := time.Hour * 48
 	if !is2FAVerified {
 		expiry = time.Minute * 10
