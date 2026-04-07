@@ -15,8 +15,8 @@ type User struct {
 	Email				string 			`gorm:"unique;not null" json:"email"`
 	Verified			bool   			`gorm:"default:false" json:"verified"`
 	Enabled2FA			bool			`gorm:"default:false" json:"enabled_2fa"`
-	IsOtpVerified		bool			`gorm:"default:false" json:"is-otp-verified"`
-	IsTotpVerified		bool			`gorm:"default:false" json:"is_totp_verified"`
+	Is2FAVerified		bool			`gorm:"default:false" json:"is_2fa_verified"`
+	TwoFactorType 		string 			`gorm:"default:none"` // "email", "totp", "sms"
 	VerificationToken 	*string 		`gorm:"unique" json:"-"`
 	ResetToken			*string			`gorm:"unique" json:"-"`
 	TOTPSecret			*string			`json:"_"` 		// store secret for authenticator apps
